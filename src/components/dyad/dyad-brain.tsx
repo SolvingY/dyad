@@ -352,9 +352,8 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
       };
-      resize();
-      const ro = new ResizeObserver(resize);
-      ro.observe(wrap!);
+        resize();
+        ro.observe(wrap!);
 
       // Click selection (ignores drags).
       const raycaster = new THREE.Raycaster();
