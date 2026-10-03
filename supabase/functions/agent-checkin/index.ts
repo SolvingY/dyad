@@ -14,7 +14,7 @@
 // Only the cron job can call this: it must send the secret stored in Vault.
 
 import { corsHeaders, json } from "../_shared/cors.ts";
-import { ACT_AS_USER_HEADER, adminClient } from "../_shared/auth.ts";
+import { ACT_AS_USER_HEADER, adminClient, getCallerId } from "../_shared/auth.ts";
 import { TZ, chicagoParts } from "../_shared/chicago.ts";
 
 const FIRST_HOUR = 9;
@@ -52,19 +52,22 @@ Deno.serve(async (req) => {
   const admin = adminClient();
   const secret = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
   const { data: ok } = await admin.rpc("check_checkin_cron_secret", { p_secret: secret });
-  if (ok !== true) return json({ error: "forbidden" }, 403);
+  // A signed-in user may also trigger one check-in for themselves (the
+  // dashboard's empty-state button). Hold rules still apply; the hours window
+  // does not, since the human asked.
+  const selfUserId = ok === true ? null : await getCallerId(req, admin);
+  if (ok !== true && !selfUserId) return json({ error: "forbidden" }, 403);
 
   const now = new Date();
   const local = chicagoParts(now);
-  if (local.hour < FIRST_HOUR || local.hour > LAST_HOUR) {
+  if (!selfUserId && (local.hour < FIRST_HOUR || local.hour > LAST_HOUR)) {
     return json({ skipped: "outside 9am-6pm America/Chicago" });
   }
   const utcToday = now.toISOString().slice(0, 10);
 
-  const { data: agents, error: agentsErr } = await admin
-    .from("agents")
-    .select("id, user_id")
-    .order("created_at");
+  let agentsQuery = admin.from("agents").select("id, user_id").order("created_at");
+  if (selfUserId) agentsQuery = agentsQuery.eq("user_id", selfUserId);
+  const { data: agents, error: agentsErr } = await agentsQuery;
   if (agentsErr) {
     console.error(`agent-checkin: listing agents failed: ${agentsErr.message}`);
     return json({ error: "server_error" }, 500);
