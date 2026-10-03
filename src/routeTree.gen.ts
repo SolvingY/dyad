@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AgentRouteImport } from './routes/agent'
 import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as AppRouteImport } from './routes/app'
+import { Route as HistoryRouteImport } from './routes/history'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -47,6 +48,11 @@ const AgentsRoute = AgentsRouteImport.update({
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/agent': typeof AgentRoute
   '/agents': typeof AgentsRoute
   '/app': typeof AppRoute
+  '/history': typeof HistoryRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/agent': typeof AgentRoute
   '/agents': typeof AgentsRoute
   '/app': typeof AppRoute
+  '/history': typeof HistoryRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/agent': typeof AgentRoute
   '/agents': typeof AgentsRoute
   '/app': typeof AppRoute
+  '/history': typeof HistoryRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
@@ -152,6 +161,7 @@ export interface FileRouteTypes {
     | '/agent'
     | '/agents'
     | '/app'
+    | '/history'
     | '/privacy'
     | '/reset-password'
     | '/terms'
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/agent'
     | '/agents'
     | '/app'
+    | '/history'
     | '/privacy'
     | '/reset-password'
     | '/terms'
@@ -184,6 +195,7 @@ export interface FileRouteTypes {
     | '/agent'
     | '/agents'
     | '/app'
+    | '/history'
     | '/privacy'
     | '/reset-password'
     | '/terms'
@@ -201,6 +213,7 @@ export interface RootRouteChildren {
   AgentRoute: typeof AgentRoute
   AgentsRoute: typeof AgentsRoute
   AppRoute: typeof AppRoute
+  HistoryRoute: typeof HistoryRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermsRoute: typeof TermsRoute
@@ -247,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/app'
       fullPath: '/app'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -321,6 +341,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgentRoute: AgentRoute,
   AgentsRoute: AgentsRoute,
   AppRoute: AppRoute,
+  HistoryRoute: HistoryRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermsRoute: TermsRoute,
