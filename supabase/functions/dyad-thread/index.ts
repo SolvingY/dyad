@@ -4,10 +4,11 @@
 // Each agent has its own conversation; agent_id picks it (default: the built-in
 // agent). A connected agent (e.g. Claude over MCP) can't be called from here,
 // so its messages are only saved: it reads them with get_thread next time it
-// runs and replies with post_message. For the built-in agent it:
+// runs and replies with post_message. It:
 //   1. saves the human's message to thread_messages,
-//   2. logs an agent_events 'context_refresh' (the agent heard from the human),
-//   3. marks an open check-in as answered, so agent-checkin's hold rules see it,
+//   2. marks that agent's open check-in as answered, so the hold rules see it,
+// and for the built-in agent also:
+//   3. logs an agent_events 'context_refresh' (the agent heard from the human),
 //   4. calls Claude through agent-call with the last 20 messages (holds
 //      left out), today's oura_daily row and today's agent_daily row,
 //   5. saves the reply with its agent_events id.
