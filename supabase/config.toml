@@ -4,3 +4,6 @@ verify_jwt = false
 
 [functions.oura-callback]
 verify_jwt = false
+
+[functions.agent-call]
+verify_jwt = false
