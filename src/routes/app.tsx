@@ -119,7 +119,7 @@ function useDyadData() {
     void sync();
   }, [user?.id, loadOura, loadAgent, sync]);
 
-  return { user, oura, agentDay, ouraConnected, lastSync, syncState, sync };
+  return { user, oura, ouraError, agentDay, ouraConnected, lastSync, syncState, sync };
 }
 
 async function connectOura() {
@@ -176,7 +176,15 @@ function DashboardInner() {
               tone="human"
               title="You"
               value={oura?.readiness_score}
-              caption={d.user ? (oura ? "Readiness · today" : "No Oura data today") : "Sign in"}
+              caption={
+                d.user
+                  ? d.ouraError
+                    ? `Oura error: ${d.ouraError}`
+                    : oura
+                      ? `Readiness · ${new Date(`${oura.day}T12:00:00`).toLocaleDateString([], { month: "short", day: "numeric" })}`
+                      : "No Oura data yet"
+                  : "Sign in"
+              }
               stats={youStats}
               footer={
                 d.user && (
