@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { GlassCard } from "@/components/dyad/glass-card";
+import { SyncInsightsCard } from "@/components/dyad/sync-insights-card";
 import { ReadinessRing } from "@/components/dyad/readiness-ring";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +63,7 @@ function Dashboard() {
               glowClassName="shadow-[0_0_12px_var(--glow-dyad)]"
             />
             <ReadinessCard tone="dyad" label="Alignment" />
-            <SlotCard index="01" tone="dyad" />
+            <SyncInsightsCard />
           </section>
 
           <section aria-label="Agent" className="flex flex-col gap-5">
