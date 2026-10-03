@@ -335,7 +335,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
       // bright pulse traveling along each one and re-firing at random intervals.
       const sampled: { x: number; y: number; z: number; side: number }[] = [];
       for (let i = 0; i < pos.length / 3; i++) {
-        sampled.push({ x: pos[i * 3], y: pos[i * 3 + 1], z: pos[i * 3 + 2], side: sideAttr[i] });
+        sampled.push({ x: pos[i * 3]!, y: pos[i * 3 + 1]!, z: pos[i * 3 + 2]!, side: sideAttr[i]! });
       }
       const CONNECTIONS = 120;
       const linePos: number[] = [];
