@@ -40,20 +40,27 @@ type SyncState = "idle" | "syncing" | "ok" | "failed";
 function useDyadData() {
   const { user } = useAuth();
   const [oura, setOura] = useState<OuraRow | null>(null);
+  const [ouraError, setOuraError] = useState<string | null>(null);
   const [agentDay, setAgentDay] = useState<AgentRow | null>(null);
   const [ouraConnected, setOuraConnected] = useState<boolean | null>(null);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [syncState, setSyncState] = useState<SyncState>("idle");
 
   const loadOura = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("oura_daily")
-      .select("*")
-      .order("updated_at", { ascending: false })
-      .limit(14);
-    const rows = data ?? [];
-    setLastSync(rows[0]?.updated_at ?? null);
-    setOura(rows.find((r) => r.day === localDate()) ?? null);
+      .select("day, readiness_score, sleep_score, average_hrv, resting_heart_rate, steps, updated_at")
+      .order("day", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      setOuraError(error.message);
+      setOura(null);
+      return;
+    }
+    setOuraError(null);
+    setLastSync(data?.updated_at ?? null);
+    setOura(data ?? null);
   }, []);
 
   const loadAgent = useCallback(async () => {
@@ -68,7 +75,7 @@ function useDyadData() {
       .from("agent_daily")
       .select("*")
       .eq("agent_id", agent.id)
-      .eq("day", new Date().toISOString().slice(0, 10))
+      .eq("day", localDate())
       .maybeSingle();
     setAgentDay(data ?? null);
   }, []);
