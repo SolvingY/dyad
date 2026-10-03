@@ -77,7 +77,7 @@ export function toHumanVitals(row: OuraRow | null | undefined): HumanVitals | nu
 export function toAgentVitals(row: AgentRow | null | undefined): AgentVitals | null {
   if (!row) return null;
   const raw = (row.raw ?? {}) as Record<string, unknown>;
-  const last = typeof raw.last_context_refresh === "string" ? raw.last_context_refresh : null;
+  const last = typeof raw["last_context_refresh"] === "string" ? raw["last_context_refresh"] : null;
   return {
     day: row.day,
     readiness: num(row.readiness_score),
@@ -293,5 +293,6 @@ export function agentLimitingFactor(v: AgentVitals | null): string | null {
     ["retry rate", w.retry * 100 * Math.min(1, v.retryRate ?? 0)],
   ];
   losses.sort((a, b) => b[1] - a[1]);
-  return losses[0][1] > 1 ? losses[0][0] : null;
+  const top = losses[0];
+  return top && top[1] > 1 ? top[0] : null;
 }

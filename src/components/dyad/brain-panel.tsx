@@ -26,7 +26,7 @@ function Row({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-function Title({ children, sub, dot }: { children: ReactNode; sub?: string; dot: string }) {
+function Title({ children, sub, dot }: { children: ReactNode; sub?: string | undefined; dot: string }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
       <div className="flex items-center gap-2.5">

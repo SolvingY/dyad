@@ -8,6 +8,7 @@ import type * as THREEType from "three";
 import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
 import type { DyadVisualState } from "@/lib/dyad/vitals";
 import { cn } from "@/lib/utils";
+import brainAsset from "@/assets/brain.glb.asset.json";
 
 export type BrainRegion = "human" | "agent" | "center";
 
@@ -18,7 +19,7 @@ type Props = {
   className?: string;
 };
 
-const MODEL_URL = "/models/brain.glb";
+const MODEL_URL = brainAsset.url;
 const DRACO_PATH = "/draco/";
 
 // Module-level cache: the GLB is fetched and decoded once per page session.
@@ -259,7 +260,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         const mesh = obj as THREEType.Mesh;
         if (!mesh.isMesh) return;
         const { region, isSurface, isBrainstem } = classify(mesh);
-        mesh.userData.dyadRegion = region;
+        mesh.userData['dyadRegion'] = region;
         if (isBrainstem) mesh.material = mats.brainstem;
         else if (region === "human") mesh.material = isSurface ? mats.human : mats.humanDeep;
         else if (region === "agent") mesh.material = isSurface ? mats.agent : mats.agentDeep;
@@ -297,7 +298,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
       for (const mesh of meshes) {
         if (budget >= BUDGET) break;
         const { region, isSurface } = classify(mesh);
-        const a = mesh.geometry?.attributes?.position;
+        const a = mesh.geometry?.attributes?.['position'];
         if (!isSurface || !a) continue;
         const step = Math.max(28, Math.floor(a.count / 160));
         for (let i = 0; i < a.count && budget < BUDGET; i += step) {
@@ -373,7 +374,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
         raycaster.setFromCamera(ndc, camera);
         const hit = raycaster.intersectObjects(meshes, false)[0];
-        if (hit) onSelectRef.current(hit.object.userData.dyadRegion as BrainRegion);
+        if (hit) onSelectRef.current(hit.object.userData['dyadRegion'] as BrainRegion);
       };
       canvas.addEventListener("pointerdown", onDown);
       canvas.addEventListener("pointerup", onUp);
@@ -465,7 +466,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         raf = 0;
       };
       const io = new IntersectionObserver(([entry]) => {
-        onScreen = entry.isIntersecting;
+        onScreen = entry?.isIntersecting ?? true;
         if (onScreen) start();
         else stop();
       });
