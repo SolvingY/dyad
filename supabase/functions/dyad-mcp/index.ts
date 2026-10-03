@@ -50,6 +50,12 @@ log_call so your vitals stay accurate. You may make 20 tool calls per hour.`;
 
 const TOOLS = [
   {
+    name: "get_heart_rate_and_workouts",
+    description:
+      "The human's Oura heart rate over the last 24 hours (latest reading, last-hour and awake averages) and their 10 most recent workouts. Use it to notice mid-day stress.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
     name: "get_vitals",
     description:
       "The human's daily Oura data (readiness, sleep, HRV, activity) and your own daily vitals (readiness, error rate, latency, freshness), newest first.",
@@ -150,6 +156,30 @@ async function callTool(
   args: Record<string, unknown>,
 ): Promise<unknown> {
   const { agentId, userId } = caller;
+
+  if (name === "get_heart_rate_and_workouts") {
+    const since = new Date(Date.now() - 24 * 3600_000).toISOString();
+    const [{ data: hr }, { data: workouts }] = await Promise.all([
+      admin.from("oura_heartrate").select("ts, bpm, source").eq("user_id", userId)
+        .gte("ts", since).order("ts"),
+      admin.from("oura_workouts").select("day, activity, start_at, end_at, calories, intensity")
+        .eq("user_id", userId).order("start_at", { ascending: false }).limit(10),
+    ]);
+    const pts = hr ?? [];
+    const hourAgo = Date.now() - 3600_000;
+    const lastHour = pts.filter((p) => new Date(p.ts).getTime() >= hourAgo && p.source !== "sleep");
+    const avg = (l: { bpm: number }[]) =>
+      l.length ? Math.round(l.reduce((s, p) => s + p.bpm, 0) / l.length) : null;
+    return {
+      heart_rate: {
+        latest: pts.at(-1) ?? null,
+        last_hour_avg_bpm: avg(lastHour),
+        last_24h_awake_avg_bpm: avg(pts.filter((p) => p.source !== "sleep")),
+        points_last_24h: pts.length,
+      },
+      recent_workouts: workouts ?? [],
+    };
+  }
 
   if (name === "get_vitals") {
     const days = args.days === undefined ? 1 : args.days;
