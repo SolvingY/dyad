@@ -5,6 +5,7 @@ import { Mic, Pause, Send, Square, Volume2, VolumeX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { streamSpeech } from "@/lib/speech/stream-speech";
 
 // The Dyad conversation, live from thread_messages. Sending goes through the
 // dyad-thread edge function; the empty state can trigger agent-checkin once.
@@ -58,20 +59,57 @@ export function DyadThread() {
 
   useEffect(() => setCanDictate(!!getRecognitionCtor()), []);
 
-  // Spoken replies: read new agent messages aloud with the browser's voice.
+  // Spoken replies: agent text turned into natural speech by Lovable AI.
   const [canSpeak, setCanSpeak] = useState(false);
   const [voiceOn, setVoiceOn] = useState(false);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const speakAbortRef = useRef<AbortController | null>(null);
   const lastSpokenRef = useRef<string | null | undefined>(undefined);
+
+  const stopSpeaking = useCallback(() => {
+    speakAbortRef.current?.abort();
+    speakAbortRef.current = null;
+    setSpeakingId(null);
+  }, []);
+
+  const speak = useCallback(
+    async (id: string, content: string) => {
+      stopSpeaking();
+      const plain = content.replace(/[#*_`>\[\]()]/g, "").trim();
+      if (!plain) return;
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return;
+      const ctrl = new AbortController();
+      speakAbortRef.current = ctrl;
+      setSpeakingId(id);
+      setVoiceError(null);
+      try {
+        await streamSpeech("/api/speak", plain, token, ctrl.signal);
+      } catch (e) {
+        if (!ctrl.signal.aborted) {
+          console.error(e);
+          setVoiceError("Couldn't play that reply out loud.");
+        }
+      } finally {
+        if (speakAbortRef.current === ctrl) {
+          speakAbortRef.current = null;
+          setSpeakingId(null);
+        }
+      }
+    },
+    [stopSpeaking],
+  );
+
   useEffect(() => {
-    setCanSpeak(typeof window !== "undefined" && "speechSynthesis" in window);
+    setCanSpeak(typeof window !== "undefined" && "AudioContext" in window);
     setVoiceOn(localStorage.getItem("dyad-voice") === "1");
-    return () => {
-      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-    };
+    return () => speakAbortRef.current?.abort();
   }, []);
   useEffect(() => {
     if (!messages) return;
-    const latest = [...messages].reverse().find((m) => m.role !== "human" && m.role !== "user" && m.kind !== "hold");
+    const latest = [...messages].reverse().find((m) => m.role !== "human" && m.kind !== "hold");
     const id = latest?.id ?? null;
     if (lastSpokenRef.current === undefined) {
       lastSpokenRef.current = id; // don't read old history on first load
@@ -79,14 +117,8 @@ export function DyadThread() {
     }
     if (!latest || id === lastSpokenRef.current) return;
     lastSpokenRef.current = id;
-    if (!voiceOn || !canSpeak) return;
-    const plain = latest.content.replace(/[#*_`>\[\]()]/g, "").trim();
-    if (!plain) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(plain);
-    u.lang = navigator.language || "en-US";
-    window.speechSynthesis.speak(u);
-  }, [messages, voiceOn, canSpeak]);
+    if (voiceOn && canSpeak) void speak(latest.id, latest.content);
+  }, [messages, voiceOn, canSpeak, speak]);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -163,7 +195,7 @@ export function DyadThread() {
     const next = !voiceOn;
     setVoiceOn(next);
     localStorage.setItem("dyad-voice", next ? "1" : "0");
-    if (!next) window.speechSynthesis.cancel();
+    if (!next) stopSpeaking();
   }
 
   async function tapEnergy(n: number) {
@@ -311,6 +343,17 @@ export function DyadThread() {
                   ))}
                 </div>
               )}
+              {canSpeak && (
+                <button
+                  type="button"
+                  onClick={() => (speakingId === m.id ? stopSpeaking() : void speak(m.id, m.content))}
+                  aria-label={speakingId === m.id ? "Stop speaking" : "Listen to this reply"}
+                  className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-agent hover:text-foreground"
+                >
+                  {speakingId === m.id ? <Square className="size-3" /> : <Volume2 className="size-3" />}
+                  {speakingId === m.id ? "Stop" : "Listen"}
+                </button>
+              )}
               {m.event_id && (
                 <button
                   type="button"
@@ -375,6 +418,7 @@ export function DyadThread() {
         </button>
       </form>
       {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
+      {voiceError && <p className="mt-2 text-xs text-destructive">{voiceError}</p>}
     </div>
   );
 }
