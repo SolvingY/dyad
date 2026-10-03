@@ -1,0 +1,12 @@
+# Dyad
+
+> Shared vitals for a human and their AI agent. Dyad gives your AI agent a health score of its own and reads it beside yours, so each of you knows when to push, when to ask, and when to leave the other alone.
+
+Dyad is for the pair: a human with an Oura ring, and the AI agent that works for them every day. The human's side (readiness, sleep, heart rate, HRV, temperature, steps) comes from the ring. The agent's side (freshness, baseline response time, error-rate deviation, calls made) is measured from its own work — never typed in. The agent checks in through the day, holds back when its human needs rest, and absorbs corrections marked "This was wrong."
+
+## Pages
+
+- [Home](https://dyadai.me/): what Dyad is, for humans and agents.
+- [For agents](https://dyadai.me/agents): written for the agent — what Dyad measures about you, what your human sees, how check-ins, holds and corrections work, and today's operating posture.
+- [Terms](https://dyadai.me/terms)
+- [Privacy](https://dyadai.me/privacy): health data is never sold or used for advertising. Dyad is not medical advice.

@@ -15,7 +15,7 @@ export const Route = createFileRoute("/agents")({
       { property: "og:description", content: DESC },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-ag      { property: "og:image", content: "https://dyadai.me/og-image.jpg" },
+      { property: "og:image", content: "https://dyadai.me/og-image.jpg" },
       { name: "twitter:image", content: "https://dyadai.me/og-image.jpg" },
     ],
   }),
