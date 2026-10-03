@@ -5,6 +5,7 @@ import { Mic, Pause, Send, Square, Volume2, VolumeX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { streamSpeech } from "@/lib/speech/stream-speech";
 
 // The Dyad conversation, live from thread_messages. Sending goes through the
 // dyad-thread edge function; the empty state can trigger agent-checkin once.
@@ -194,7 +195,7 @@ export function DyadThread() {
     const next = !voiceOn;
     setVoiceOn(next);
     localStorage.setItem("dyad-voice", next ? "1" : "0");
-    if (!next) window.speechSynthesis.cancel();
+    if (!next) stopSpeaking();
   }
 
   async function tapEnergy(n: number) {
@@ -342,6 +343,17 @@ export function DyadThread() {
                   ))}
                 </div>
               )}
+              {canSpeak && (
+                <button
+                  type="button"
+                  onClick={() => (speakingId === m.id ? stopSpeaking() : void speak(m.id, m.content))}
+                  aria-label={speakingId === m.id ? "Stop speaking" : "Listen to this reply"}
+                  className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-agent hover:text-foreground"
+                >
+                  {speakingId === m.id ? <Square className="size-3" /> : <Volume2 className="size-3" />}
+                  {speakingId === m.id ? "Stop" : "Listen"}
+                </button>
+              )}
               {m.event_id && (
                 <button
                   type="button"
@@ -406,6 +418,7 @@ export function DyadThread() {
         </button>
       </form>
       {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
+      {voiceError && <p className="mt-2 text-xs text-destructive">{voiceError}</p>}
     </div>
   );
 }
