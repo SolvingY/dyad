@@ -8,8 +8,12 @@ import { cn } from "@/lib/utils";
 import { streamSpeech } from "@/lib/speech/stream-speech";
 import { McpConnectHint } from "@/components/dyad/mcp-instructions";
 
-// The Dyad conversation, live from thread_messages. Sending goes through the
-// dyad-thread edge function; the empty state can trigger agent-checkin once.
+// The conversation with one agent, live from thread_messages. Sending goes
+// through the dyad-thread edge function; the empty state can trigger
+// agent-checkin once. A connected agent (e.g. Claude over MCP) can't be called
+// from here: it reads new messages the next time it uses Dyad's tools.
+
+export type ThreadAgent = { id: string; name: string; source: string };
 
 type Message = {
   id: string;
@@ -43,8 +47,9 @@ function getRecognitionCtor(): (new () => Recognition) | null {
   return (w["SpeechRecognition"] ?? w["webkitSpeechRecognition"] ?? null) as (new () => Recognition) | null;
 }
 
-export function DyadThread() {
+export function DyadThread({ agent }: { agent: ThreadAgent | null }) {
   const { user, loading } = useAuth();
+  const external = agent?.source === "external" ? agent.name : null;
   const [hasAgent, setHasAgent] = useState<boolean | null>(null);
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [corrected, setCorrected] = useState<Set<string>>(new Set());
@@ -121,10 +126,13 @@ export function DyadThread() {
     if (voiceOn && canSpeak) void speak(latest.id, latest.content);
   }, [messages, voiceOn, canSpeak, speak]);
 
+  const agentId = agent?.id;
   const load = useCallback(async () => {
+    if (!agentId) return;
     const { data } = await supabase
       .from("thread_messages")
       .select("id, role, kind, content, energy, event_id, created_at, agents(name, source)")
+      .eq("agent_id", agentId)
       .order("created_at", { ascending: false })
       .limit(80);
     const list = (data ?? []).reverse();
@@ -138,7 +146,14 @@ export function DyadThread() {
         .eq("was_corrected", true);
       setCorrected(new Set((events ?? []).map((e) => e.id)));
     }
-  }, []);
+  }, [agentId]);
+
+  // Switching agents: start the new conversation fresh, without reading its
+  // latest reply out loud.
+  useEffect(() => {
+    setMessages(null);
+    lastSpokenRef.current = undefined;
+  }, [agentId]);
 
   useEffect(() => {
     if (!user) return;
@@ -175,7 +190,9 @@ export function DyadThread() {
     if (busy) return false;
     setBusy(true);
     setError(null);
-    const { error } = await supabase.functions.invoke("dyad-thread", { body: { content, energy } });
+    const { error } = await supabase.functions.invoke("dyad-thread", {
+      body: { content, energy, agent_id: agentId },
+    });
     setBusy(false);
     if (error) setError("Couldn't send. Try again.");
     await load();
@@ -288,8 +305,12 @@ export function DyadThread() {
       <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1 py-4">
         {messages && messages.length === 0 && (
           <div className="m-auto flex flex-col items-center gap-4 text-center">
-            <p className="text-sm text-muted-foreground">Your agent will check in soon.</p>
-            {checkinState !== "done" && (
+            <p className="text-sm text-muted-foreground">
+              {external
+                ? `No messages with ${external} yet. Send one and ${external} will see it the next time it uses Dyad.`
+                : "Your agent will check in soon."}
+            </p>
+            {!external && checkinState !== "done" && (
               <button
                 type="button"
                 onClick={triggerCheckin}
@@ -299,7 +320,7 @@ export function DyadThread() {
                 {checkinState === "running" ? "Checking in…" : "Check in now"}
               </button>
             )}
-            <McpConnectHint />
+            {!external && <McpConnectHint />}
           </div>
         )}
         {messages?.map((m) =>
@@ -368,7 +389,13 @@ export function DyadThread() {
             </div>
           ),
         )}
-        {busy && <p className="text-[11px] text-agent">Agent is thinking…</p>}
+        {busy && !external && <p className="text-[11px] text-agent">Agent is thinking…</p>}
+        {external && messages?.at(-1)?.role === "human" && (
+          <p className="text-center text-[11px] text-muted-foreground">
+            Sent. {external} will see this and reply the next time it uses Dyad, e.g. when you ask
+            it to check Dyad.
+          </p>
+        )}
       </div>
 
       <form onSubmit={send} className="glass-card flex items-center gap-3 rounded-3xl p-2.5">
@@ -391,7 +418,7 @@ export function DyadThread() {
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={listening ? "Listening…" : "Message your agent…"}
+          placeholder={listening ? "Listening…" : `Message ${external ?? "your agent"}…`}
           maxLength={4000}
           aria-label="Message"
           className="min-w-0 flex-1 bg-transparent px-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"

@@ -1,10 +1,14 @@
 // The Dyad conversation: the human writes to their agent and gets a reply.
 //
-// POST { content, energy? (1-5) } with the signed-in user's session. It:
+// POST { content, energy? (1-5), agent_id? } with the signed-in user's session.
+// Each agent has its own conversation; agent_id picks it (default: the built-in
+// agent). A connected agent (e.g. Claude over MCP) can't be called from here,
+// so its messages are only saved: it reads them with get_thread next time it
+// runs and replies with post_message. For the built-in agent it:
 //   1. saves the human's message to thread_messages,
 //   2. logs an agent_events 'context_refresh' (the agent heard from the human),
 //   3. marks an open check-in as answered, so agent-checkin's hold rules see it,
-//   4. calls Claude through agent-call with the last 20 thread messages (holds
+//   4. calls Claude through agent-call with the last 20 messages (holds
 //      left out), today's oura_daily row and today's agent_daily row,
 //   5. saves the reply with its agent_events id.
 
@@ -33,14 +37,11 @@ Deno.serve(async (req) => {
     return json({ error: "bad_request", detail: "energy must be an integer 1-5" }, 400);
   }
 
-  const { data: agent } = await admin
-    .from("agents")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("source", "builtin")
-    .order("created_at")
-    .limit(1)
-    .maybeSingle();
+  const agentId = typeof body?.agent_id === "string" ? body.agent_id : null;
+  const agents = admin.from("agents").select("id, source").eq("user_id", userId);
+  const { data: agent } = await (
+    agentId ? agents.eq("id", agentId) : agents.eq("source", "builtin").order("created_at").limit(1)
+  ).maybeSingle();
   if (!agent) return json({ error: "agent_not_found" }, 404);
 
   const { error: saveErr } = await admin.from("thread_messages").insert({
@@ -56,15 +57,11 @@ Deno.serve(async (req) => {
     return json({ error: "save_failed" }, 500);
   }
 
-  const { error: eventErr } = await admin
-    .from("agent_events")
-    .insert({ agent_id: agent.id, event_type: "context_refresh", task_id: "thread" });
-  if (eventErr) console.error(`dyad-thread: logging context_refresh failed: ${eventErr.message}`);
-
   const { data: openCheckin } = await admin
     .from("checkins")
     .select("id")
     .eq("user_id", userId)
+    .eq("agent_id", agent.id)
     .eq("decision", "ask")
     .is("responded_at", null)
     .order("created_at", { ascending: false })
@@ -81,12 +78,20 @@ Deno.serve(async (req) => {
       .eq("id", openCheckin.id);
   }
 
+  if (agent.source !== "builtin") return json({ ok: true, queued: true });
+
+  const { error: eventErr } = await admin
+    .from("agent_events")
+    .insert({ agent_id: agent.id, event_type: "context_refresh", task_id: "thread" });
+  if (eventErr) console.error(`dyad-thread: logging context_refresh failed: ${eventErr.message}`);
+
   const now = new Date();
   const [{ data: history }, { data: oura }, { data: agentDay }] = await Promise.all([
     admin
       .from("thread_messages")
       .select("role, content, energy")
       .eq("user_id", userId)
+      .eq("agent_id", agent.id)
       .neq("kind", "hold")
       .order("created_at", { ascending: false })
       .limit(HISTORY),
