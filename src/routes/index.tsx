@@ -1,24 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { GlassCard } from "@/components/dyad/glass-card";
 import { DyadThread } from "@/components/dyad/dyad-thread";
 import { ReadinessRing } from "@/components/dyad/readiness-ring";
 import { cn } from "@/lib/utils";
-import { DyadBrain, type BrainRegion } from "@/components/dyad/dyad-brain";
-import { RegionPanel } from "@/components/dyad/brain-panel";
-import {
-  getDyadOperatingPosture,
-  toAgentVisual,
-  toAgentVitals,
-  toCenterVisual,
-  toHumanVisual,
-  toHumanVitals,
-  type AgentRow,
-  type DyadVisualState,
-  type OuraRow,
-} from "@/lib/dyad/vitals";
+import type { AgentRow, OuraRow } from "@/lib/dyad/vitals";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,13 +14,12 @@ export const Route = createFileRoute("/")({
       { title: "Dyad — Shared vitals for human & agent" },
       {
         name: "description",
-        content:
-          "A calm, futuristic dashboard pairing human vitals with AI agent telemetry.",
+        content: "A calm conversation between you and your AI agent, grounded in both of your vitals.",
       },
       { property: "og:title", content: "Dyad — Shared vitals for human & agent" },
       {
         property: "og:description",
-        content: "A calm, futuristic dashboard pairing human vitals with AI agent telemetry.",
+        content: "A calm conversation between you and your AI agent, grounded in both of your vitals.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -43,91 +30,90 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
 });
 
-// Loads the newest 14 oura_daily and agent_daily rows for the signed-in user
-// (newest drives the display; the rest give each metric its own recent range),
-// and runs the existing oura-sync once so the human side is fresh.
+function localDate(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+type SyncState = "idle" | "syncing" | "ok" | "failed";
+
+// Today's oura_daily and agent_daily rows for the signed-in user, plus the
+// existing oura-sync (run once on sign-in, and on Retry).
 function useDyadData() {
   const { user } = useAuth();
-  const [ouraRows, setOuraRows] = useState<OuraRow[]>([]);
+  const [oura, setOura] = useState<OuraRow | null>(null);
+  const [agentDay, setAgentDay] = useState<AgentRow | null>(null);
   const [ouraConnected, setOuraConnected] = useState<boolean | null>(null);
-  const [agentRows, setAgentRows] = useState<AgentRow[]>([]);
+  const [lastSync, setLastSync] = useState<string | null>(null);
+  const [syncState, setSyncState] = useState<SyncState>("idle");
+
+  const loadOura = useCallback(async () => {
+    const { data } = await supabase
+      .from("oura_daily")
+      .select("*")
+      .order("updated_at", { ascending: false })
+      .limit(14);
+    const rows = data ?? [];
+    setLastSync(rows[0]?.updated_at ?? null);
+    setOura(rows.find((r) => r.day === localDate()) ?? null);
+  }, []);
+
+  const loadAgent = useCallback(async () => {
+    const { data: agent } = await supabase
+      .from("agents")
+      .select("id")
+      .order("created_at")
+      .limit(1)
+      .maybeSingle();
+    if (!agent) return;
+    const { data } = await supabase
+      .from("agent_daily")
+      .select("*")
+      .eq("agent_id", agent.id)
+      .eq("day", new Date().toISOString().slice(0, 10))
+      .maybeSingle();
+    setAgentDay(data ?? null);
+  }, []);
+
+  const sync = useCallback(async () => {
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !userData.user) {
+      if (userErr?.status === 401 || userErr?.status === 403) {
+        await supabase.auth.signOut({ scope: "local" });
+      }
+      return;
+    }
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (!token) return;
+    setSyncState("syncing");
+    try {
+      const { data, error } = await supabase.functions.invoke("oura-sync", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (error) {
+        setSyncState("failed");
+        return;
+      }
+      setOuraConnected(typeof data?.connected === "boolean" ? data.connected : null);
+      setSyncState("ok");
+      if (data?.connected) await loadOura();
+    } catch {
+      setSyncState("failed");
+    }
+  }, [loadOura]);
 
   useEffect(() => {
     if (!user) {
-      setOuraRows([]);
-      setAgentRows([]);
+      setOura(null);
+      setAgentDay(null);
       return;
     }
-    let cancelled = false;
-
-    async function loadOura() {
-      const { data } = await supabase
-        .from("oura_daily")
-        .select("*")
-        .order("day", { ascending: false })
-        .limit(14);
-      if (!cancelled) setOuraRows(data ?? []);
-    }
-
-    async function loadAgent() {
-      const { data: agent } = await supabase
-        .from("agents")
-        .select("id")
-        .order("created_at")
-        .limit(1)
-        .maybeSingle();
-      if (!agent) return;
-      const { data } = await supabase
-        .from("agent_daily")
-        .select("*")
-        .eq("agent_id", agent.id)
-        .order("day", { ascending: false })
-        .limit(14);
-      if (!cancelled) setAgentRows(data ?? []);
-    }
-
     void loadOura();
     void loadAgent();
-    async function syncOura() {
-      // Only call oura-sync with a live session token; otherwise the function
-      // rejects with 401 not_signed_in.
-      // getUser() validates the session with Supabase; a stale or foreign
-      // token would otherwise be rejected by the function with 401.
-      const { data: userData, error: userErr } = await supabase.auth.getUser();
-      if (userErr || !userData.user) {
-        // Saved session is no longer valid: clear it so the UI shows "Sign in".
-        if (userErr?.status === 401 || userErr?.status === 403) {
-          await supabase.auth.signOut({ scope: "local" });
-        }
-        return;
-      }
-      if (cancelled) return;
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token || cancelled) return;
-      try {
-        const { data, error } = await supabase.functions.invoke("oura-sync", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (cancelled) return;
-        if (error) {
-          console.warn("oura-sync failed", error.message);
-          return;
-        }
-        setOuraConnected(typeof data?.connected === "boolean" ? data.connected : null);
-        if (data?.connected) void loadOura();
-      } catch (e) {
-        console.warn("oura-sync failed", e);
-      }
-    }
-    void syncOura();
+    void sync();
+  }, [user?.id, loadOura, loadAgent, sync]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
-
-  return { user, ouraRows, ouraConnected, agentRows };
+  return { user, oura, agentDay, ouraConnected, lastSync, syncState, sync };
 }
 
 async function connectOura() {
@@ -135,160 +121,104 @@ async function connectOura() {
   if (!error && data?.url) window.location.assign(data.url);
 }
 
-function Dashboard() {
-  const { user, ouraRows, ouraConnected, agentRows } = useDyadData();
-  const signedOut = user ? undefined : "Sign in to see your data";
-  const [region, setRegion] = useState<BrainRegion>("center");
+const pct = (v: number | null | undefined) => (v == null ? null : `${Math.round(v * 100)}%`);
 
-  const human = useMemo(() => toHumanVitals(ouraRows[0]), [ouraRows]);
-  const agent = useMemo(() => toAgentVitals(agentRows[0]), [agentRows]);
-  const posture = useMemo(
-    () => getDyadOperatingPosture(human?.readiness ?? null, agent?.readiness ?? null),
-    [human, agent],
-  );
-  const visual = useMemo<DyadVisualState>(
-    () => ({
-      human: toHumanVisual(human, ouraRows),
-      agent: toAgentVisual(agent, agentRows),
-      center: toCenterVisual(human?.readiness ?? null, agent?.readiness ?? null),
-    }),
-    [human, agent, ouraRows, agentRows],
-  );
-  const oura = ouraRows[0] ?? null;
-  const agentDay = agentRows[0] ?? null;
+function Dashboard() {
+  const d = useDyadData();
+  const { oura, agentDay } = d;
+
+  const youStats = [
+    { label: "Sleep", value: oura?.sleep_score },
+    { label: "HRV", value: oura?.average_hrv == null ? null : `${Math.round(oura.average_hrv)} ms` },
+    {
+      label: "Resting HR",
+      value: oura?.resting_heart_rate == null ? null : `${Math.round(oura.resting_heart_rate)} bpm`,
+    },
+    { label: "Steps", value: oura?.steps?.toLocaleString() },
+  ];
+  const agentStats = [
+    { label: "Freshness", value: agentDay?.freshness_score },
+    { label: "Correction rate", value: pct(agentDay?.correction_rate) },
+    { label: "Error rate", value: pct(agentDay?.error_rate) },
+    { label: "Calls", value: agentDay?.call_count },
+  ];
 
   return (
-    <div className="dyad-ambient relative min-h-screen overflow-hidden">
-      {/* Faint grid texture */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.35]"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, var(--glass-line) 1px, transparent 1px), linear-gradient(to bottom, var(--glass-line) 1px, transparent 1px)",
-          backgroundSize: "72px 72px",
-          maskImage:
-            "radial-gradient(70rem 45rem at 50% 0%, black 30%, transparent 75%)",
-          WebkitMaskImage:
-            "radial-gradient(70rem 45rem at 50% 0%, black 30%, transparent 75%)",
-        }}
-      />
-
-      <main className="relative mx-auto w-full max-w-6xl px-6 pb-20 pt-10 md:pt-14">
+    <div className="dyad-ambient relative h-dvh overflow-hidden">
+      <main className="relative mx-auto flex h-full w-full max-w-7xl flex-col px-4 pb-4 pt-4 md:px-6">
         <Header />
 
-        <section aria-label="Dyad brain" className="mt-10 grid gap-6 md:mt-14 lg:grid-cols-[1.5fr_1fr]">
-          <GlassCard tone="dyad" className="overflow-hidden p-0">
-            <DyadBrain
-              visual={visual}
-              selected={region}
-              onSelect={setRegion}
-              className="h-[360px] w-full sm:h-[440px]"
-            />
-            <div className="flex items-center justify-center gap-2 border-t border-glass-line/60 px-4 py-3">
-              {(["human", "center", "agent"] as const).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRegion(r)}
-                  aria-pressed={region === r}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-[10px] uppercase tracking-[0.25em] transition-colors",
-                    region === r ? "glass-card text-foreground" : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {r === "center" ? "Dyad" : r}
-                </button>
-              ))}
-            </div>
-          </GlassCard>
-          <div className="min-w-0">
-            {user ? (
-              <RegionPanel region={region} human={human} agent={agent} posture={posture} />
-            ) : (
-              <GlassCard tone="dyad" className="px-5 py-6 text-sm text-muted-foreground">
-                Sign in to light up the brain with your Oura and agent vitals.
-              </GlassCard>
-            )}
-          </div>
-        </section>
+        {/* Phone: compact ring strip */}
+        <div className="mt-3 grid grid-cols-2 gap-3 lg:hidden">
+          <MiniRing tone="human" label="You" value={oura?.readiness_score} />
+          <MiniRing tone="agent" label="Agent" value={agentDay?.readiness_score} />
+        </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1.15fr_1fr]">
-          <section aria-label="Human" className="flex flex-col gap-5">
-            <ColumnHeader title="Human" dotClassName="bg-human" glowClassName="shadow-[0_0_12px_var(--human)]" />
-            <ReadinessCard
+        <div className="mt-3 grid min-h-0 flex-1 gap-5 lg:mt-6 lg:grid-cols-[17rem_1fr_17rem]">
+          <aside aria-label="You" className="hidden min-h-0 flex-col lg:flex">
+            <SideCard
               tone="human"
-              label="Readiness"
+              title="You"
               value={oura?.readiness_score}
-              caption={signedOut ?? (oura ? `Oura · ${oura.day}` : "No Oura data yet")}
-              action={
-                ouraConnected === false && (
-                  <button
-                    type="button"
-                    onClick={connectOura}
-                    className="glass-card mt-4 rounded-full px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
-                  >
-                    Connect Oura
-                  </button>
+              caption={d.user ? (oura ? "Readiness · today" : "No Oura data today") : "Sign in"}
+              stats={youStats}
+              footer={
+                d.user && (
+                  <div className="flex flex-col gap-2 border-t border-glass-line/60 pt-4 text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "size-1.5 rounded-full",
+                          d.ouraConnected ? "bg-moss" : d.ouraConnected === false ? "bg-ember" : "bg-glass-line-luminous",
+                        )}
+                      />
+                      {d.ouraConnected
+                        ? "Oura connected"
+                        : d.ouraConnected === false
+                          ? "Oura not connected"
+                          : "Checking Oura…"}
+                    </div>
+                    <p>
+                      Last sync{" "}
+                      {d.lastSync
+                        ? new Date(d.lastSync).toLocaleString([], { dateStyle: "short", timeStyle: "short" })
+                        : "—"}
+                      {d.syncState === "failed" && " · sync failed"}
+                    </p>
+                    {d.ouraConnected === false ? (
+                      <button type="button" onClick={connectOura} className="self-start text-human hover:underline">
+                        Connect Oura
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => void d.sync()}
+                        disabled={d.syncState === "syncing"}
+                        className="self-start text-human hover:underline disabled:opacity-50"
+                      >
+                        {d.syncState === "syncing" ? "Syncing…" : "Retry sync"}
+                      </button>
+                    )}
+                  </div>
                 )
               }
             />
-            <SlotCard index="01" tone="human" label="Sleep score" value={oura?.sleep_score} />
-            <SlotCard
-              index="02"
-              tone="human"
-              label="Avg HRV"
-              value={oura?.average_hrv == null ? null : `${Math.round(oura.average_hrv)} ms`}
-            />
-          </section>
+          </aside>
 
-          <section aria-label="Cross-analysis" className="relative flex flex-col gap-5">
-            <ColumnHeader
-              title="Cross-analysis"
-              dotClassName="bg-gradient-to-br from-human to-agent"
-              glowClassName="shadow-[0_0_12px_var(--glow-dyad)]"
-            />
-            <ReadinessCard
-              tone="dyad"
-              label="Today's posture"
-              caption={
-                signedOut ??
-                (posture ? posture.interruption.replace("_", " ").toLowerCase() : "Needs both readiness scores")
-              }
-            />
+          <section aria-label="Conversation" className="flex min-h-0 flex-col">
             <DyadThread />
           </section>
 
-          <section aria-label="Agent" className="flex flex-col gap-5">
-            <ColumnHeader title="Agent" dotClassName="bg-agent" glowClassName="shadow-[0_0_12px_var(--agent)]" />
-            <ReadinessCard
+          <aside aria-label="Agent" className="hidden min-h-0 flex-col lg:flex">
+            <SideCard
               tone="agent"
-              label="Readiness"
+              title="Agent"
               value={agentDay?.readiness_score}
-              caption={signedOut ?? (agentDay ? `Agent · ${agentDay.day}` : "No agent calls yet")}
+              caption={d.user ? (agentDay ? "Readiness · today" : "No agent activity today") : "Sign in"}
+              stats={agentStats}
             />
-            <SlotCard index="01" tone="agent" label="Calls" value={agentDay?.call_count} />
-            <SlotCard
-              index="02"
-              tone="agent"
-              label="Error rate"
-              value={
-                agentDay?.error_rate == null ? null : `${Math.round(agentDay.error_rate * 100)}%`
-              }
-            />
-          </section>
+          </aside>
         </div>
-
-        <footer className="mt-14 flex items-center justify-center gap-4 text-[11px] uppercase tracking-[0.25em] text-muted-foreground/60">
-          <a href="/terms" className="transition-colors hover:text-foreground/80">
-            Terms
-          </a>
-          <span aria-hidden="true" className="size-1 rounded-full bg-glass-line-luminous" />
-          <a href="/privacy" className="transition-colors hover:text-foreground/80">
-            Privacy
-          </a>
-        </footer>
-
       </main>
     </div>
   );
@@ -296,23 +226,22 @@ function Dashboard() {
 
 function Header() {
   return (
-    <header className="flex flex-col items-center gap-6">
-      <div className="self-end">
+    <header className="flex items-center justify-between gap-4">
+      <h1>
+        <img
+          src="/logo-wordmark.png"
+          alt="Dyad"
+          width={900}
+          height={194}
+          className="dyad-logo-glow h-7 w-auto md:h-9"
+        />
+      </h1>
+      <div className="flex items-center gap-4">
+        <nav className="hidden gap-3 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60 sm:flex">
+          <a href="/terms" className="hover:text-foreground/80">Terms</a>
+          <a href="/privacy" className="hover:text-foreground/80">Privacy</a>
+        </nav>
         <AccountChip />
-      </div>
-      <div className="flex flex-col items-center text-center">
-        <h1>
-          <img
-            src="/logo-wordmark.png"
-            alt="Dyad"
-            width={900}
-            height={194}
-            className="dyad-logo-glow h-16 w-auto sm:h-24 md:h-28"
-          />
-        </h1>
-        <p className="mt-4 text-sm text-muted-foreground">
-          Shared vitals for a human and their AI agent.
-        </p>
       </div>
     </header>
   );
@@ -322,7 +251,7 @@ function AccountChip() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const chip =
-    "glass-card inline-flex items-center gap-2.5 self-start rounded-full px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground";
+    "glass-card inline-flex items-center gap-2.5 rounded-full px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground";
 
   if (loading) return <div className={chip}>…</div>;
   if (!user)
@@ -335,13 +264,13 @@ function AccountChip() {
   return (
     <div className={chip}>
       <span className="size-1.5 rounded-full bg-agent shadow-[0_0_8px_var(--agent)]" />
-      <span className="max-w-[12rem] truncate normal-case tracking-normal">{user.email}</span>
-      <Link to="/agent" className="ml-1 hover:text-foreground">
+      <span className="hidden max-w-[12rem] truncate normal-case tracking-normal sm:inline">{user.email}</span>
+      <Link to="/agent" className="hover:text-foreground">
         Agent
       </Link>
       <button
         type="button"
-        className="ml-1 hover:text-foreground"
+        className="hover:text-foreground"
         onClick={async () => {
           await supabase.auth.signOut();
           navigate({ to: "/", replace: true });
@@ -353,92 +282,77 @@ function AccountChip() {
   );
 }
 
-function ColumnHeader({
-  title,
-  dotClassName,
-  glowClassName,
-}: {
-  title: string;
-  dotClassName?: string;
-  glowClassName?: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 px-1">
-      <span
-        aria-hidden="true"
-        className={cn("size-1.5 rounded-full", dotClassName, glowClassName)}
-      />
-      <h2 className="text-[11px] font-medium uppercase tracking-[0.35em] text-foreground/60">
-        {title}
-      </h2>
-    </div>
-  );
-}
-
-function ReadinessCard({
+function SideCard({
   tone,
-  label,
+  title,
   value,
-  caption = "Awaiting schema",
-  action,
+  caption,
+  stats,
+  footer,
 }: {
-  tone: "human" | "agent" | "dyad";
-  label: string;
-  value?: number | null | undefined;
-  caption?: string;
-  action?: ReactNode;
+  tone: "human" | "agent";
+  title: string;
+  value: number | null | undefined;
+  caption: string;
+  stats: { label: string; value: number | string | null | undefined }[];
+  footer?: React.ReactNode;
 }) {
   return (
-    <GlassCard tone={tone} className="flex flex-col items-center px-6 pb-8 pt-6">
-      <div className="flex w-full items-center justify-between">
-        <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-          {label}
-        </span>
-        <span className="text-[10px] tracking-[0.2em] text-muted-foreground/50">
-          RING
-        </span>
+    <GlassCard tone={tone} className="flex h-full flex-col px-5 pb-5 pt-5">
+      <div className="flex items-center gap-2.5">
+        <span className={cn("size-1.5 rounded-full", tone === "human" ? "bg-human" : "bg-agent")} />
+        <h2
+          className={cn(
+            "text-[11px] font-medium uppercase tracking-[0.35em]",
+            tone === "human" ? "text-human" : "text-agent",
+          )}
+        >
+          {title}
+        </h2>
       </div>
-      <ReadinessRing tone={tone} value={value} className="mt-7" />
-      <p className="mt-6 font-display text-5xl font-extralight tracking-tight text-foreground/85">
-        {value ?? "—"}
-      </p>
-      <p className="mt-2 text-xs text-muted-foreground/80">{caption}</p>
-      {action}
+      <div className="mt-5 flex flex-col items-center">
+        <ReadinessRing tone={tone} value={value} />
+        <p className="mt-4 font-display text-5xl font-extralight tracking-tight text-foreground/85">
+          {value ?? "—"}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">{caption}</p>
+      </div>
+      <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-4">
+        {stats.map((s) => (
+          <div key={s.label}>
+            <dt className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{s.label}</dt>
+            <dd className="mt-1 font-display text-xl font-extralight text-foreground/85">{s.value ?? "—"}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="mt-auto pt-6">{footer}</div>
     </GlassCard>
   );
 }
 
-function SlotCard({
-  index,
+function MiniRing({
   tone,
   label,
   value,
 }: {
-  index: string;
-  tone: "human" | "agent" | "dyad";
-  label?: string;
-  value?: number | string | null | undefined;
+  tone: "human" | "agent";
+  label: string;
+  value: number | null | undefined;
 }) {
   return (
-    <GlassCard tone={tone} className="flex flex-1 flex-col px-6 pb-6 pt-6">
-      {tone === "dyad" && (
-        <span
-          aria-hidden="true"
-          className="dyad-gradient-line absolute inset-x-6 top-0 h-px"
-        />
-      )}
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-          Slot {index}
-        </span>
-        <span className="text-[10px] tracking-[0.2em] text-muted-foreground/50">
-          00 / 00
-        </span>
+    <GlassCard tone={tone} className="flex items-center gap-3 px-3 py-2">
+      <ReadinessRing tone={tone} value={value} size={44} />
+      <div>
+        <p
+          className={cn(
+            "text-[10px] uppercase tracking-[0.25em]",
+            tone === "human" ? "text-human" : "text-agent",
+          )}
+        >
+          {label}
+        </p>
+        <p className="font-display text-2xl font-extralight text-foreground/85">{value ?? "—"}</p>
       </div>
-      <p className="mt-8 font-display text-4xl font-extralight tracking-tight text-foreground/80">
-        {value ?? "—"}
-      </p>
-      <p className="mt-3 text-xs text-muted-foreground/80">{label ?? "Awaiting schema"}</p>
     </GlassCard>
   );
 }
