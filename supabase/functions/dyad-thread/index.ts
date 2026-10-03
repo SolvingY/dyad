@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
     .from("agents")
     .select("id")
     .eq("user_id", userId)
+    .eq("source", "builtin")
     .order("created_at")
     .limit(1)
     .maybeSingle();

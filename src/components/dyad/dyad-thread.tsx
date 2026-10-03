@@ -17,7 +17,11 @@ type Message = {
   energy: number | null;
   event_id: string | null;
   created_at: string;
+  agents: { name: string; source: string } | null;
 };
+
+// Connected (external) agents are labelled by name; Dyad's own agent isn't.
+const externalName = (m: Message) => (m.agents?.source === "external" ? m.agents.name : null);
 
 // Minimal typing for the browser Web Speech API.
 type Recognition = {
@@ -57,7 +61,7 @@ export function DyadThread() {
   const load = useCallback(async () => {
     const { data } = await supabase
       .from("thread_messages")
-      .select("id, role, kind, content, energy, event_id, created_at")
+      .select("id, role, kind, content, energy, event_id, created_at, agents(name, source)")
       .order("created_at", { ascending: false })
       .limit(80);
     const list = (data ?? []).reverse();
@@ -78,6 +82,7 @@ export function DyadThread() {
     supabase
       .from("agents")
       .select("id")
+      .eq("source", "builtin")
       .limit(1)
       .maybeSingle()
       .then(({ data }) => setHasAgent(!!data));
@@ -228,7 +233,7 @@ export function DyadThread() {
           m.kind === "hold" ? (
             <p key={m.id} className="flex items-center justify-center gap-1.5 text-center text-[11px] text-foreground">
               <Pause aria-hidden="true" className="size-3 shrink-0" />
-              Agent held off · {m.content}
+              {externalName(m) ?? "Agent"} held off · {m.content}
             </p>
           ) : m.role === "human" ? (
             <div
@@ -242,8 +247,10 @@ export function DyadThread() {
               key={m.id}
               className="max-w-[90%] self-start rounded-2xl rounded-bl-sm border border-agent/30 bg-agent/10 px-4 py-2.5"
             >
-              {m.kind === "checkin" && (
-                <p className="mb-1 text-[10px] uppercase tracking-[0.2em] text-agent">Check-in</p>
+              {(m.kind === "checkin" || externalName(m)) && (
+                <p className="mb-1 text-[10px] uppercase tracking-[0.2em] text-agent">
+                  {[externalName(m), m.kind === "checkin" && "Check-in"].filter(Boolean).join(" · ")}
+                </p>
               )}
               <div className="ask-dyad-md text-sm leading-relaxed text-foreground">
                 <ReactMarkdown>{m.content}</ReactMarkdown>

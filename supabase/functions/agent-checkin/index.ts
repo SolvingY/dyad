@@ -16,11 +16,10 @@
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { ACT_AS_USER_HEADER, adminClient, getCallerId } from "../_shared/auth.ts";
 import { TZ, chicagoParts } from "../_shared/chicago.ts";
+import { holdReason } from "../_shared/checkin-rules.ts";
 
 const FIRST_HOUR = 9;
 const LAST_HOUR = 18; // 6pm
-const MAX_ASKS_PER_DAY = 3;
-const QUIET_AFTER_RESPONSE_MS = 2 * 60 * 60 * 1000;
 
 const PROMPT = `You are an AI agent checking in on the human you work with. Decide whether to ask them how they're doing right now ("ask") or leave them alone ("hold").
 Ask only when it would help you plan your work around their energy, for example after a poor night's sleep, a big change in readiness, or a long gap since you last heard from them. Otherwise hold.
@@ -64,8 +63,17 @@ Deno.serve(async (req) => {
     return json({ skipped: "outside 9am-6pm America/Chicago" });
   }
   const utcToday = now.toISOString().slice(0, 10);
+  // dry_run (signed-in callers only, e.g. dyad-mcp's should_check_in tool):
+  // return the decision without saving it or posting to the thread.
+  const dryRun = selfUserId !== null && (await req.json().catch(() => null))?.dry_run === true;
 
-  let agentsQuery = admin.from("agents").select("id, user_id").order("created_at");
+  // Only Dyad's built-in agent checks in on a schedule; connected agents
+  // (source 'external') decide for themselves.
+  let agentsQuery = admin
+    .from("agents")
+    .select("id, user_id")
+    .eq("source", "builtin")
+    .order("created_at");
   if (selfUserId) agentsQuery = agentsQuery.eq("user_id", selfUserId);
   const { data: agents, error: agentsErr } = await agentsQuery;
   if (agentsErr) {
@@ -77,7 +85,12 @@ Deno.serve(async (req) => {
   for (const a of agents ?? [])
     if (!firstAgentByUser.has(a.user_id)) firstAgentByUser.set(a.user_id, a.id);
 
-  const results: { user_id: string; decision: string }[] = [];
+  const results: {
+    user_id: string;
+    decision: string;
+    reason?: string;
+    message?: string | null;
+  }[] = [];
   for (const [userId, agentId] of firstAgentByUser) {
     try {
       const sync = await callAsUser("oura-sync", userId, {});
@@ -125,17 +138,9 @@ Deno.serve(async (req) => {
       let message: string | null = null;
       let eventId: string | null = null;
 
-      const answeredRecently = today.some(
-        (c) =>
-          c.responded_at &&
-          now.getTime() - new Date(c.responded_at).getTime() < QUIET_AFTER_RESPONSE_MS,
-      );
-      const asksToday = today.filter((c) => c.decision === "ask").length;
-
-      if (answeredRecently) {
-        reason = "The human answered a check-in in the last 2 hours.";
-      } else if (asksToday >= MAX_ASKS_PER_DAY) {
-        reason = `Already asked ${MAX_ASKS_PER_DAY} times today.`;
+      const mustHold = holdReason(today, now);
+      if (mustHold) {
+        reason = mustHold;
       } else {
         const context = {
           local_time: `${local.date} ${String(local.hour).padStart(2, "0")}:00 ${TZ}`,
@@ -175,6 +180,11 @@ Deno.serve(async (req) => {
             message = oneQuestion(parsed.message.trim());
           }
         }
+      }
+
+      if (dryRun) {
+        results.push({ user_id: userId, decision, reason, message });
+        continue;
       }
 
       const { error } = await admin.from("checkins").insert({ ...row, decision, reason, message });

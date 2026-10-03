@@ -16,3 +16,9 @@ verify_jwt = false
 
 [functions.dyad-thread]
 verify_jwt = false
+
+[functions.dyad-mcp]
+verify_jwt = false
+
+[functions.agent-keys]
+verify_jwt = false
