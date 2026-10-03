@@ -647,3 +647,10 @@ a.liquid-press:active,
 @media (prefers-reduced-motion: reduce) {
   .dyad-float { animation: none; }
 }
+
+/* Smooth in-page scrolling (e.g. "Watch the film" to the film section). */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
