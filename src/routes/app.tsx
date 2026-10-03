@@ -173,9 +173,6 @@ function DashboardInner() {
     }),
     [human, agent, ouraRows, agentRows],
   );
-  const youLit = region === "human" || region === "center";
-  const agentLit = region === "agent" || region === "center";
-  const highlight = "ring-1 ring-offset-0 rounded-[inherit]";
 
   const youStats = [
     { label: "Sleep", value: oura?.sleep_score },
@@ -204,7 +201,6 @@ function DashboardInner() {
             className={cn(
               "order-2 flex min-h-0 flex-col rounded-2xl transition-all lg:order-none",
               region === "human" && "shadow-[0_0_28px_var(--human)]",
-              !youLit && "opacity-50",
             )}
           >
             <SideCard
@@ -264,19 +260,113 @@ function DashboardInner() {
             />
           </aside>
 
-          <section aria-label="Conversation" className="flex min-h-0 flex-col">
-            <DyadThread />
+          <section aria-label="Brain and conversation" className="order-1 flex min-h-0 flex-col gap-4 lg:order-none">
+            <div className="grid shrink-0 gap-4 lg:h-[40%] lg:min-h-0 xl:grid-cols-[1.2fr_1fr]">
+              <GlassCard tone="dyad" className="flex min-h-0 flex-col overflow-hidden p-0">
+                <DyadBrain
+                  visual={visual}
+                  selected={region}
+                  onSelect={setRegion}
+                  className="h-[300px] w-full lg:h-auto lg:min-h-0 lg:flex-1"
+                />
+                <div className="flex items-center justify-center gap-2 border-t border-glass-line/60 px-4 py-2">
+                  {(["human", "center", "agent"] as const).map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRegion(r)}
+                      aria-pressed={region === r}
+                      className={cn(
+                        "rounded-full px-3.5 py-1.5 text-[10px] uppercase tracking-[0.25em] text-foreground transition-colors",
+                        region === r && "glass-card",
+                        r === "human" && "text-human",
+                        r === "agent" && "text-agent",
+                      )}
+                    >
+                      {r === "center" ? "Dyad" : r}
+                    </button>
+                  ))}
+                </div>
+              </GlassCard>
+              <div className="min-h-0 overflow-y-auto">
+                {d.ouraError || d.agentError ? (
+                  <GlassCard tone="dyad" className="px-5 py-5 text-xs text-foreground">
+                    {d.ouraError && <p>Oura error: {d.ouraError}</p>}
+                    {d.agentError && <p>Agent error: {d.agentError}</p>}
+                  </GlassCard>
+                ) : (
+                  <RegionPanel region={region} human={human} agent={agent} posture={posture} />
+                )}
+              </div>
+            </div>
+            <div className="flex h-[70dvh] min-h-0 flex-col lg:h-auto lg:flex-1">
+              <DyadThread />
+            </div>
           </section>
 
-          <aside aria-label="Agent" className="hidden min-h-0 flex-col lg:flex">
+          <aside
+            aria-label="Agent"
+            className={cn(
+              "order-3 flex min-h-0 flex-col rounded-2xl transition-all lg:order-none",
+              region === "agent" && "shadow-[0_0_28px_var(--agent)]",
+            )}
+          >
             <SideCard
               tone="agent"
               title="Agent"
               value={agentDay?.readiness_score}
-              caption={d.user ? (agentDay ? "Readiness · today" : "No agent activity today") : "Sign in"}
+              caption={
+                d.agentError
+                  ? `Agent error: ${d.agentError}`
+                  : agentDay
+                    ? "Readiness · today"
+                    : "No agent activity today"
+              }
               stats={agentStats}
             />
           </aside>
+        </div>
+
+        {/* Detail sections, restored from the earlier dashboard */}
+        <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_1.15fr_1fr]">
+          <section aria-label="Human detail" className="flex flex-col gap-5">
+            <ColumnHeader title="Human" dotClassName="bg-human shadow-[0_0_12px_var(--human)]" />
+            <ReadinessCard
+              tone="human"
+              label="Readiness"
+              value={oura?.readiness_score}
+              caption={d.ouraError ? `Oura error: ${d.ouraError}` : oura ? `Oura · ${oura.day}` : "No Oura data yet"}
+            />
+            <SlotCard tone="human" label="Sleep score" value={oura?.sleep_score} />
+            <SlotCard
+              tone="human"
+              label="Avg HRV"
+              value={oura?.average_hrv == null ? null : `${Math.round(oura.average_hrv)} ms`}
+            />
+          </section>
+          <section aria-label="Cross-analysis" className="flex flex-col gap-5">
+            <ColumnHeader title="Cross-analysis" dotClassName="bg-gradient-to-br from-human to-agent shadow-[0_0_12px_var(--glow-dyad)]" />
+            <ReadinessCard
+              tone="dyad"
+              label="Today's posture"
+              caption={posture ? posture.interruption.replace("_", " ").toLowerCase() : "Needs both readiness scores"}
+            />
+          </section>
+          <section aria-label="Agent detail" className="flex flex-col gap-5">
+            <ColumnHeader title="Agent" dotClassName="bg-agent shadow-[0_0_12px_var(--agent)]" />
+            <ReadinessCard
+              tone="agent"
+              label="Readiness"
+              value={latestAgent?.readiness_score}
+              caption={d.agentError ? `Agent error: ${d.agentError}` : latestAgent ? `Agent · ${latestAgent.day}` : "No agent calls yet"}
+            />
+            <SlotCard tone="agent" label="Calls" value={latestAgent?.call_count} />
+            <SlotCard
+              tone="agent"
+              label="Error rate"
+              value={latestAgent?.error_rate == null ? null : `${Math.round(latestAgent.error_rate * 100)}%`}
+            />
+          </section>
         </div>
       </main>
     </div>
