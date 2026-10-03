@@ -1,4 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 import { GlassCard } from "@/components/dyad/glass-card";
 import { ReadinessRing } from "@/components/dyad/readiness-ring";
 import { cn } from "@/lib/utils";
@@ -100,11 +102,40 @@ function Header() {
           Shared vitals for a human and their AI agent.
         </p>
       </div>
-      <div className="glass-card inline-flex items-center gap-2.5 self-start rounded-full px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-        <span className="size-1.5 rounded-full bg-glass-line-luminous" />
-        Backend not connected
-      </div>
+      <AccountChip />
     </header>
+  );
+}
+
+function AccountChip() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const chip =
+    "glass-card inline-flex items-center gap-2.5 self-start rounded-full px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground";
+
+  if (loading) return <div className={chip}>…</div>;
+  if (!user)
+    return (
+      <Link to="/auth" className={cn(chip, "hover:text-foreground")}>
+        <span className="size-1.5 rounded-full bg-glass-line-luminous" />
+        Sign in
+      </Link>
+    );
+  return (
+    <div className={chip}>
+      <span className="size-1.5 rounded-full bg-agent shadow-[0_0_8px_var(--agent)]" />
+      <span className="max-w-[12rem] truncate normal-case tracking-normal">{user.email}</span>
+      <button
+        type="button"
+        className="ml-1 hover:text-foreground"
+        onClick={async () => {
+          await supabase.auth.signOut();
+          navigate({ to: "/", replace: true });
+        }}
+      >
+        Sign out
+      </button>
+    </div>
   );
 }
 
