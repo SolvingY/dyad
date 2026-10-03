@@ -20,13 +20,21 @@ export const Route = createFileRoute("/api/public/password-reset")({
         }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-          redirectTo: "https://dyad-human-agent-sync.lovable.app/reset-password",
+        const redirectTo = "https://dyad-human-agent-sync.lovable.app/reset-password";
+        const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, { redirectTo });
+        if (!error) return Response.json({ ok: true, delivered: "email" });
+
+        // Email rate limit (or another send failure): fall back to generating
+        // the recovery link directly so it can be shared with the user.
+        const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+          type: "recovery",
+          email,
+          options: { redirectTo },
         });
-        if (error) {
-          return Response.json({ error: error.message }, { status: 500 });
+        if (linkError || !linkData?.properties?.action_link) {
+          return Response.json({ error: linkError?.message ?? error.message }, { status: 500 });
         }
-        return Response.json({ ok: true });
+        return Response.json({ ok: true, delivered: "link", action_link: linkData.properties.action_link });
       },
     },
   },
