@@ -345,13 +345,13 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
       let made = 0;
       let guard = 0;
       while (made < CONNECTIONS && guard++ < 8000 && sampled.length > 8) {
-        const a = sampled[Math.floor(Math.random() * sampled.length)];
+        const a = sampled[Math.floor(Math.random() * sampled.length)]!;
         // Prefer a nearby partner on the same side; ~1 in 6 crosses the midline.
         const cross = made % 6 === 5;
         let best: (typeof sampled)[number] | null = null;
         let bestD = Infinity;
         for (let tries = 0; tries < 24; tries++) {
-          const b = sampled[Math.floor(Math.random() * sampled.length)];
+          const b = sampled[Math.floor(Math.random() * sampled.length)]!;
           if (b === a) continue;
           if (!cross && Math.abs(b.side - a.side) > 0.25) continue;
           if (cross && Math.abs(b.side - a.side) < 0.5) continue;
