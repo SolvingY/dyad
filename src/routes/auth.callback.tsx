@@ -24,7 +24,7 @@ function AuthCallback() {
 
   useEffect(() => {
     let cancelled = false;
-    const finish = () => !cancelled && navigate({ to: "/", replace: true });
+    const finish = () => !cancelled && navigate({ to: "/app", replace: true });
 
     (async () => {
       const url = new URL(window.location.href);

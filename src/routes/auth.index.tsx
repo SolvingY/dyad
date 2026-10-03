@@ -16,6 +16,8 @@ export const Route = createFileRoute("/auth/")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>): { mode?: "signup" } =>
+    search["mode"] === "signup" ? { mode: "signup" } : {},
   component: AuthPage,
 });
 
@@ -31,7 +33,7 @@ const ghostBtn =
 function AuthPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const [mode, setMode] = useState<Mode>("signin");
+  const [mode, setMode] = useState<Mode>(Route.useSearch().mode ?? "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -39,7 +41,7 @@ function AuthPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/", replace: true });
+    if (!loading && user) navigate({ to: "/app", replace: true });
   }, [user, loading, navigate]);
 
   async function oauth(provider: "google" | "github") {

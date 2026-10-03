@@ -39,7 +39,7 @@ function OuraCallbackPage() {
     const params = new URLSearchParams(window.location.search);
     void finishOuraConnect(params)
       .catch(() => "error" as const)
-      .then((oura) => navigate({ href: `/?oura=${oura}`, replace: true }));
+      .then((oura) => navigate({ href: `/app?oura=${oura}`, replace: true }));
   }, [navigate]);
 
   return (

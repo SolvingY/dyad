@@ -14,3 +14,4 @@
 - Posture comparison constants live only in `src/lib/dyad/posture-config.ts`; `getDyadOperatingPosture` stays a pure function. Why: no existing readiness bands, so one tunable home.
 - Agent readiness is computed only by `refresh_agent_daily` in SQL; the client may explain the limiting factor using mirrored weights but never recomputes readiness. Why: single source of truth.
 - The brain GLB is served as a Lovable asset with a local Draco decoder in `public/draco/`; data changes only materials/uniforms, never geometry. Why: no runtime third-party CDN, no anatomy deformation.
+- "/" is the public landing page (signed-in visitors redirect to "/app"); the dashboard lives at "/app" and redirects signed-out visitors to "/auth". Why: marketing page and app stay separate.

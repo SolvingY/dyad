@@ -1,358 +1,311 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Pause } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { GlassCard } from "@/components/dyad/glass-card";
-import { DyadThread } from "@/components/dyad/dyad-thread";
-import { ReadinessRing } from "@/components/dyad/readiness-ring";
+import { DyadBrain, type BrainRegion } from "@/components/dyad/dyad-brain";
+import { toCenterVisual, type DyadVisualState } from "@/lib/dyad/vitals";
 import { cn } from "@/lib/utils";
-import type { AgentRow, OuraRow } from "@/lib/dyad/vitals";
+
+const TITLE = "Dyad — Shared vitals for you and your agent";
+const DESC =
+  "Dyad gives your AI agent a health score of its own and reads it beside yours, so each of you knows when to push, when to ask, and when to leave the other alone.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Dyad — Shared vitals for human & agent" },
-      {
-        name: "description",
-        content: "A calm conversation between you and your AI agent, grounded in both of your vitals.",
-      },
-      { property: "og:title", content: "Dyad — Shared vitals for human & agent" },
-      {
-        property: "og:description",
-        content: "A calm conversation between you and your AI agent, grounded in both of your vitals.",
-      },
+      { title: TITLE },
+      { name: "description", content: DESC },
+      { property: "og:title", content: TITLE },
+      { property: "og:description", content: DESC },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:image", content: "https://dyadai.me/og-image.jpg" },
       { name: "twitter:image", content: "https://dyadai.me/og-image.jpg" },
     ],
   }),
-  component: Dashboard,
+  component: Landing,
 });
 
-function localDate(d = new Date()) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
+// Neutral brain state: no data, so the brain shows its resting look.
+const VISUAL: DyadVisualState = { human: null, agent: null, center: toCenterVisual(null, null) };
 
-type SyncState = "idle" | "syncing" | "ok" | "failed";
+const PAIRS: [string, string, string?][] = [
+  ["Readiness", "Readiness"],
+  ["Sleep", "Freshness", "how current its knowledge of you is"],
+  ["Resting heart rate", "Baseline response time"],
+  ["Temperature deviation", "Error-rate deviation"],
+  ["Steps", "Calls made"],
+];
 
-// Today's oura_daily and agent_daily rows for the signed-in user, plus the
-// existing oura-sync (run once on sign-in, and on Retry).
-function useDyadData() {
-  const { user } = useAuth();
-  const [oura, setOura] = useState<OuraRow | null>(null);
-  const [agentDay, setAgentDay] = useState<AgentRow | null>(null);
-  const [ouraConnected, setOuraConnected] = useState<boolean | null>(null);
-  const [lastSync, setLastSync] = useState<string | null>(null);
-  const [syncState, setSyncState] = useState<SyncState>("idle");
-
-  const loadOura = useCallback(async () => {
-    const { data } = await supabase
-      .from("oura_daily")
-      .select("*")
-      .order("updated_at", { ascending: false })
-      .limit(14);
-    const rows = data ?? [];
-    setLastSync(rows[0]?.updated_at ?? null);
-    setOura(rows.find((r) => r.day === localDate()) ?? null);
-  }, []);
-
-  const loadAgent = useCallback(async () => {
-    const { data: agent } = await supabase
-      .from("agents")
-      .select("id")
-      .order("created_at")
-      .limit(1)
-      .maybeSingle();
-    if (!agent) return;
-    const { data } = await supabase
-      .from("agent_daily")
-      .select("*")
-      .eq("agent_id", agent.id)
-      .eq("day", new Date().toISOString().slice(0, 10))
-      .maybeSingle();
-    setAgentDay(data ?? null);
-  }, []);
-
-  const sync = useCallback(async () => {
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !userData.user) {
-      if (userErr?.status === 401 || userErr?.status === 403) {
-        await supabase.auth.signOut({ scope: "local" });
-      }
-      return;
-    }
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
-    if (!token) return;
-    setSyncState("syncing");
-    try {
-      const { data, error } = await supabase.functions.invoke("oura-sync", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (error) {
-        setSyncState("failed");
-        return;
-      }
-      setOuraConnected(typeof data?.connected === "boolean" ? data.connected : null);
-      setSyncState("ok");
-      if (data?.connected) await loadOura();
-    } catch {
-      setSyncState("failed");
-    }
-  }, [loadOura]);
-
+/** Full motion only on wide screens without reduced-motion. */
+function useRichMotion() {
+  const [rich, setRich] = useState(false);
   useEffect(() => {
-    if (!user) {
-      setOura(null);
-      setAgentDay(null);
-      return;
-    }
-    void loadOura();
-    void loadAgent();
-    void sync();
-  }, [user?.id, loadOura, loadAgent, sync]);
-
-  return { user, oura, agentDay, ouraConnected, lastSync, syncState, sync };
+    const mq = window.matchMedia("(min-width: 1024px) and (prefers-reduced-motion: no-preference)");
+    const update = () => setRich(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return rich;
 }
 
-async function connectOura() {
-  const { data, error } = await supabase.functions.invoke("oura-auth-start");
-  if (!error && data?.url) window.location.assign(data.url);
-}
-
-const pct = (v: number | null | undefined) => (v == null ? null : `${Math.round(v * 100)}%`);
-
-function Dashboard() {
-  const d = useDyadData();
-  const { oura, agentDay } = d;
-
-  const youStats = [
-    { label: "Sleep", value: oura?.sleep_score },
-    { label: "HRV", value: oura?.average_hrv == null ? null : `${Math.round(oura.average_hrv)} ms` },
-    {
-      label: "Resting HR",
-      value: oura?.resting_heart_rate == null ? null : `${Math.round(oura.resting_heart_rate)} bpm`,
-    },
-    { label: "Steps", value: oura?.steps?.toLocaleString() },
-  ];
-  const agentStats = [
-    { label: "Freshness", value: agentDay?.freshness_score },
-    { label: "Correction rate", value: pct(agentDay?.correction_rate) },
-    { label: "Error rate", value: pct(agentDay?.error_rate) },
-    { label: "Calls", value: agentDay?.call_count },
-  ];
-
-  return (
-    <div className="dyad-ambient relative h-dvh overflow-hidden">
-      <main className="relative mx-auto flex h-full w-full max-w-7xl flex-col px-4 pb-4 pt-4 md:px-6">
-        <Header />
-
-        {/* Phone: compact ring strip */}
-        <div className="mt-3 grid grid-cols-2 gap-3 lg:hidden">
-          <MiniRing tone="human" label="You" value={oura?.readiness_score} />
-          <MiniRing tone="agent" label="Agent" value={agentDay?.readiness_score} />
-        </div>
-
-        <div className="mt-3 grid min-h-0 flex-1 gap-5 lg:mt-6 lg:grid-cols-[17rem_1fr_17rem]">
-          <aside aria-label="You" className="hidden min-h-0 flex-col lg:flex">
-            <SideCard
-              tone="human"
-              title="You"
-              value={oura?.readiness_score}
-              caption={d.user ? (oura ? "Readiness · today" : "No Oura data today") : "Sign in"}
-              stats={youStats}
-              footer={
-                d.user && (
-                  <div className="flex flex-col gap-2 border-t border-glass-line/60 pt-4 text-[11px] text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={cn(
-                          "size-1.5 rounded-full",
-                          d.ouraConnected ? "bg-moss" : d.ouraConnected === false ? "bg-ember" : "bg-glass-line-luminous",
-                        )}
-                      />
-                      {d.ouraConnected
-                        ? "Oura connected"
-                        : d.ouraConnected === false
-                          ? "Oura not connected"
-                          : "Checking Oura…"}
-                    </div>
-                    <p>
-                      Last sync{" "}
-                      {d.lastSync
-                        ? new Date(d.lastSync).toLocaleString([], { dateStyle: "short", timeStyle: "short" })
-                        : "—"}
-                      {d.syncState === "failed" && " · sync failed"}
-                    </p>
-                    {d.ouraConnected === false ? (
-                      <button type="button" onClick={connectOura} className="self-start text-human hover:underline">
-                        Connect Oura
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => void d.sync()}
-                        disabled={d.syncState === "syncing"}
-                        className="self-start text-human hover:underline disabled:cursor-not-allowed"
-                      >
-                        {d.syncState === "syncing" ? "Syncing…" : "Retry sync"}
-                      </button>
-                    )}
-                  </div>
-                )
-              }
-            />
-          </aside>
-
-          <section aria-label="Conversation" className="flex min-h-0 flex-col">
-            <DyadThread />
-          </section>
-
-          <aside aria-label="Agent" className="hidden min-h-0 flex-col lg:flex">
-            <SideCard
-              tone="agent"
-              title="Agent"
-              value={agentDay?.readiness_score}
-              caption={d.user ? (agentDay ? "Readiness · today" : "No agent activity today") : "Sign in"}
-              stats={agentStats}
-            />
-          </aside>
-        </div>
-      </main>
-    </div>
-  );
-}
-
-function Header() {
-  return (
-    <header className="flex items-center justify-between gap-4">
-      <h1>
-        <img
-          src="/logo-wordmark.png"
-          alt="Dyad"
-          width={900}
-          height={194}
-          className="dyad-logo-glow h-7 w-auto md:h-9"
-        />
-      </h1>
-      <div className="flex items-center gap-4">
-        <nav className="hidden gap-3 text-[10px] uppercase tracking-[0.25em] text-muted-foreground sm:flex">
-          <a href="/terms" className="hover:text-foreground">Terms</a>
-          <a href="/privacy" className="hover:text-foreground">Privacy</a>
-        </nav>
-        <AccountChip />
-      </div>
-    </header>
-  );
-}
-
-function AccountChip() {
+function Landing() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const chip =
-    "glass-card inline-flex items-center gap-2.5 rounded-full px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground";
+  const rich = useRichMotion();
+  const [shown, setShown] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [hover, setHover] = useState<BrainRegion | null>(null);
 
-  if (loading) return <div className={chip}>…</div>;
-  if (!user)
-    return (
-      <Link to="/auth" className={cn(chip, "hover:text-foreground")}>
-        <span className="size-1.5 rounded-full bg-glass-line-luminous" />
-        Sign in
-      </Link>
-    );
+  useEffect(() => {
+    if (!loading && user) navigate({ to: "/app", replace: true });
+  }, [loading, user, navigate]);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setShown(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  useEffect(() => {
+    if (!rich) {
+      setProgress(0);
+      setTilt({ x: 0, y: 0 });
+      return;
+    }
+    const onScroll = () => setProgress(Math.min(1, Math.max(0, window.scrollY / window.innerHeight)));
+    const onMove = (e: PointerEvent) =>
+      setTilt({ x: (e.clientX / window.innerWidth - 0.5) * 2, y: (e.clientY / window.innerHeight - 0.5) * 2 });
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("pointermove", onMove);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("pointermove", onMove);
+    };
+  }, [rich]);
+
+  const scale = 1 - progress * 0.55;
+
   return (
-    <div className={chip}>
-      <span className="size-1.5 rounded-full bg-agent shadow-[0_0_8px_var(--agent)]" />
-      <span className="hidden max-w-[12rem] truncate normal-case tracking-normal sm:inline">{user.email}</span>
-      <Link to="/agent" className="hover:text-foreground">
-        Agent
-      </Link>
-      <button
-        type="button"
-        className="hover:text-foreground"
-        onClick={async () => {
-          await supabase.auth.signOut();
-          navigate({ to: "/", replace: true });
-        }}
-      >
-        Sign out
-      </button>
+    <div className="dyad-ambient relative min-h-dvh bg-background text-foreground">
+      <div className="relative">
+        {/* Brain stage: sticky through the hero and "Two sets of vitals" on desktop */}
+        <div className="relative h-dvh overflow-hidden bg-background lg:sticky lg:top-0">
+          {rich && <Particles />}
+          <div
+            className="absolute inset-0 flex items-center justify-center mix-blend-screen"
+            style={{
+              opacity: shown ? 1 : 0,
+              transition: "opacity 3s ease-out",
+              perspective: "1200px",
+            }}
+          >
+            <div
+              className="relative h-[52vh] w-[min(92vw,80vh)] lg:h-[62vh]"
+              style={{
+                transform: `translateY(${-(1 - progress) * 12}vh) scale(${scale}) rotateX(${-tilt.y * 6}deg) rotateY(${tilt.x * 8}deg)`,
+                transition: "transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
+              }}
+            >
+              <div className={cn("h-full w-full", rich && "dyad-float")}>
+                <DyadBrain
+                  visual={VISUAL}
+                  selected={hover}
+                  onSelect={() => {}}
+                  className="h-full w-full"
+                />
+              </div>
+              {rich && (
+                <div className="absolute inset-0 grid grid-cols-2">
+                  <div onPointerEnter={() => setHover("human")} onPointerLeave={() => setHover(null)} />
+                  <div onPointerEnter={() => setHover("agent")} onPointerLeave={() => setHover(null)} />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* HERO text */}
+        <section className="pointer-events-none relative -mt-[100dvh] flex h-dvh flex-col">
+          <header className="pointer-events-auto flex items-center justify-between px-6 pt-6 md:px-10">
+            <img src="/logo-wordmark.png" alt="Dyad" width={900} height={194} className="dyad-logo-glow h-7 w-auto md:h-9" />
+            <Link to="/auth" className="text-[11px] uppercase tracking-[0.25em] text-foreground hover:text-agent">
+              Sign in
+            </Link>
+          </header>
+          <div
+            className="mt-auto flex flex-col items-center px-6 pb-14 text-center"
+            style={{
+              opacity: shown ? 1 - progress * 1.6 : 0,
+              transition: shown && progress === 0 ? "opacity 1.4s ease-out 3s" : "none",
+            }}
+          >
+            <h1 className="max-w-3xl font-display text-4xl font-extralight tracking-tight text-foreground md:text-6xl">
+              Shared vitals for you and your agent.
+            </h1>
+            <p className="mt-5 max-w-2xl text-base font-light leading-relaxed text-foreground md:text-lg">
+              Dyad gives your AI agent a health score of its own and reads it beside yours, so each of you
+              knows when to push, when to ask, and when to leave the other alone.
+            </p>
+            <SignupCta className="pointer-events-auto mt-8" />
+          </div>
+        </section>
+
+        {/* SECTION 2 */}
+        <section className="pointer-events-none relative flex min-h-dvh flex-col justify-center px-6 py-20 md:px-10">
+          <SectionTitle>Two sets of vitals</SectionTitle>
+          <div className="mx-auto mt-10 grid w-full max-w-6xl grid-cols-2 gap-6 lg:grid-cols-[1fr_minmax(16rem,1fr)_1fr]">
+            <ul className="flex flex-col gap-6 lg:text-right">
+              {PAIRS.map(([h]) => (
+                <li key={h} className="border-b border-human/40 pb-3 text-lg font-light text-human">
+                  {h}
+                </li>
+              ))}
+            </ul>
+            <div className="hidden lg:block" aria-hidden="true" />
+            <ul className="flex flex-col gap-6">
+              {PAIRS.map(([, a, note]) => (
+                <li key={a} className="border-b border-agent/40 pb-3 text-lg font-light text-agent">
+                  {a}
+                  {note && <span className="block text-sm text-foreground">{note}</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <Line>
+            Your side comes from your Oura ring. The agent's side is measured from its own work, never typed in.
+          </Line>
+        </section>
+      </div>
+
+      {/* SECTION 3 */}
+      <section className="relative bg-background px-6 py-28 md:px-10">
+        <SectionTitle>The space between</SectionTitle>
+        <div className="mx-auto mt-10 flex max-w-xl flex-col gap-4">
+          <div className="max-w-[90%] self-start rounded-2xl rounded-bl-sm border border-agent/30 bg-agent/10 px-4 py-2.5">
+            <p className="mb-1 text-[10px] uppercase tracking-[0.2em] text-agent">Check-in</p>
+            <p className="text-sm leading-relaxed text-foreground">
+              Your readiness is 74 and I'm working from yesterday's picture of you. One question: how's your
+              energy right now?
+            </p>
+          </div>
+          <p className="flex items-center justify-center gap-1.5 text-[11px] text-foreground">
+            <Pause aria-hidden="true" className="size-3" />
+            Held: you answered an hour ago.
+          </p>
+        </div>
+        <Line>
+          Your agent checks in when it helps and holds back when it doesn't. Every answer makes it know you better.
+        </Line>
+      </section>
+
+      {/* SECTION 4 */}
+      <section className="relative bg-background px-6 py-28 md:px-10">
+        <SectionTitle>How it works</SectionTitle>
+        <ol className="mx-auto mt-10 flex max-w-xl flex-col gap-6">
+          {[
+            "Connect your Oura ring.",
+            "Your agent starts measuring itself.",
+            "It checks in through the day, and you answer by voice or text.",
+          ].map((step, i) => (
+            <li key={step} className="flex items-baseline gap-5 border-b border-glass-line pb-4">
+              <span className="font-display text-3xl font-extralight text-agent">{i + 1}</span>
+              <span className="text-lg font-light text-foreground">{step}</span>
+            </li>
+          ))}
+        </ol>
+        <SignupCta className="mt-12" />
+      </section>
+
+      <footer className="relative flex flex-wrap items-center justify-center gap-4 border-t border-glass-line bg-background px-6 py-8 text-[11px] uppercase tracking-[0.2em] text-foreground">
+        <Link to="/terms" className="hover:text-human">Terms</Link>
+        <Link to="/privacy" className="hover:text-agent">Privacy</Link>
+        <span className="normal-case tracking-normal">Dyad is not medical advice.</span>
+      </footer>
     </div>
   );
 }
 
-function SideCard({
-  tone,
-  title,
-  value,
-  caption,
-  stats,
-  footer,
-}: {
-  tone: "human" | "agent";
-  title: string;
-  value: number | null | undefined;
-  caption: string;
-  stats: { label: string; value: number | string | null | undefined }[];
-  footer?: React.ReactNode;
-}) {
+function SignupCta({ className }: { className?: string }) {
   return (
-    <GlassCard tone={tone} className="flex h-full flex-col px-5 pb-5 pt-5">
-      <div className="flex items-center gap-2.5">
-        <span className={cn("size-1.5 rounded-full", tone === "human" ? "bg-human" : "bg-agent")} />
-        <h2
-          className={cn(
-            "text-[11px] font-medium uppercase tracking-[0.35em]",
-            tone === "human" ? "text-human" : "text-agent",
-          )}
-        >
-          {title}
-        </h2>
-      </div>
-      <div className="mt-5 flex flex-col items-center">
-        <ReadinessRing tone={tone} value={value} />
-        <p className="mt-4 font-display text-5xl font-extralight tracking-tight text-foreground">
-          {value ?? "—"}
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">{caption}</p>
-      </div>
-      <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-4">
-        {stats.map((s) => (
-          <div key={s.label}>
-            <dt className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{s.label}</dt>
-            <dd className="mt-1 font-display text-xl font-extralight text-foreground">{s.value ?? "—"}</dd>
-          </div>
-        ))}
-      </dl>
-      <div className="mt-auto pt-6">{footer}</div>
-    </GlassCard>
+    <div className={cn("flex flex-col items-center gap-3", className)}>
+      <Link
+        to="/auth"
+        search={{ mode: "signup" }}
+        className="rounded-full bg-gradient-to-r from-human to-agent px-8 py-3 text-sm font-medium text-background shadow-[0_0_28px_var(--glow-dyad)] transition-transform hover:scale-[1.03]"
+      >
+        Sign up
+      </Link>
+      <Link to="/auth" className="text-xs text-foreground underline-offset-4 hover:underline">
+        Sign in
+      </Link>
+    </div>
   );
 }
 
-function MiniRing({
-  tone,
-  label,
-  value,
-}: {
-  tone: "human" | "agent";
-  label: string;
-  value: number | null | undefined;
-}) {
+function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <GlassCard tone={tone} className="flex items-center gap-3 px-3 py-2">
-      <ReadinessRing tone={tone} value={value} size={44} />
-      <div>
-        <p
-          className={cn(
-            "text-[10px] uppercase tracking-[0.25em]",
-            tone === "human" ? "text-human" : "text-agent",
-          )}
-        >
-          {label}
-        </p>
-        <p className="font-display text-2xl font-extralight text-foreground">{value ?? "—"}</p>
-      </div>
-    </GlassCard>
+    <h2 className="text-center font-display text-3xl font-extralight tracking-tight text-foreground md:text-5xl">
+      {children}
+    </h2>
   );
+}
+
+function Line({ children }: { children: ReactNode }) {
+  return (
+    <p className="mx-auto mt-12 max-w-2xl text-center text-base font-light leading-relaxed text-foreground">
+      {children}
+    </p>
+  );
+}
+
+/** Faint field of slowly drifting particles (desktop, full motion only). */
+function Particles() {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+    let w = 0;
+    let h = 0;
+    const resize = () => {
+      w = canvas.clientWidth;
+      h = canvas.clientHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    const dots = Array.from({ length: 90 }, () => ({
+      x: Math.random(),
+      y: Math.random(),
+      r: Math.random() * 1.2 + 0.3,
+      vx: (Math.random() - 0.5) * 0.00008,
+      vy: -Math.random() * 0.00012 - 0.00002,
+      gold: Math.random() < 0.5,
+    }));
+    let raf = 0;
+    const tick = () => {
+      ctx.clearRect(0, 0, w, h);
+      for (const d of dots) {
+        d.x = (d.x + d.vx + 1) % 1;
+        d.y = (d.y + d.vy + 1) % 1;
+        ctx.beginPath();
+        ctx.arc(d.x * w, d.y * h, d.r, 0, Math.PI * 2);
+        ctx.fillStyle = d.gold ? "rgba(245,197,24,0.35)" : "rgba(0,212,200,0.35)";
+        ctx.fill();
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+  return <canvas ref={ref} aria-hidden="true" className="absolute inset-0 h-full w-full" />;
 }

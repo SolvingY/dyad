@@ -93,7 +93,7 @@ function AgentPage() {
   return (
     <div className="dyad-ambient relative min-h-screen">
       <main className="relative mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 pb-24 pt-10">
-        <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">
+        <Link to="/app" className="text-sm text-muted-foreground hover:text-foreground">
           ← Dashboard
         </Link>
         <h1 className="font-display text-2xl font-light uppercase tracking-[0.3em]">Agent</h1>
