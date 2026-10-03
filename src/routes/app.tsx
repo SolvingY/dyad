@@ -1,12 +1,24 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { GlassCard } from "@/components/dyad/glass-card";
 import { DyadThread } from "@/components/dyad/dyad-thread";
 import { ReadinessRing } from "@/components/dyad/readiness-ring";
 import { cn } from "@/lib/utils";
-import type { AgentRow, OuraRow } from "@/lib/dyad/vitals";
+import { DyadBrain, type BrainRegion } from "@/components/dyad/dyad-brain";
+import { RegionPanel } from "@/components/dyad/brain-panel";
+import {
+  getDyadOperatingPosture,
+  toAgentVisual,
+  toAgentVitals,
+  toCenterVisual,
+  toHumanVisual,
+  toHumanVitals,
+  type AgentRow,
+  type DyadVisualState,
+  type OuraRow,
+} from "@/lib/dyad/vitals";
 
 export const Route = createFileRoute("/app")({
   head: () => ({
@@ -200,7 +212,7 @@ function DashboardInner() {
             aria-label="You"
             className={cn(
               "order-2 flex min-h-0 flex-col rounded-2xl transition-all lg:order-none",
-              region === "human" && "shadow-[0_0_28px_var(--human)]",
+              region !== "agent" && "shadow-[0_0_28px_var(--human)]",
             )}
           >
             <SideCard
@@ -308,7 +320,7 @@ function DashboardInner() {
             aria-label="Agent"
             className={cn(
               "order-3 flex min-h-0 flex-col rounded-2xl transition-all lg:order-none",
-              region === "agent" && "shadow-[0_0_28px_var(--agent)]",
+              region !== "human" && "shadow-[0_0_28px_var(--agent)]",
             )}
           >
             <SideCard
@@ -479,29 +491,52 @@ function SideCard({
   );
 }
 
-function MiniRing({
+function ColumnHeader({ title, dotClassName }: { title: string; dotClassName: string }) {
+  return (
+    <div className="flex items-center gap-3 px-1">
+      <span aria-hidden="true" className={cn("size-1.5 rounded-full", dotClassName)} />
+      <h2 className="text-[11px] font-medium uppercase tracking-[0.35em] text-foreground">{title}</h2>
+    </div>
+  );
+}
+
+function ReadinessCard({
+  tone,
+  label,
+  value,
+  caption,
+}: {
+  tone: "human" | "agent" | "dyad";
+  label: string;
+  value?: number | null | undefined;
+  caption: string;
+}) {
+  return (
+    <GlassCard tone={tone} className="flex flex-col items-center px-6 pb-8 pt-6">
+      <div className="flex w-full items-center justify-between">
+        <span className="text-[10px] uppercase tracking-[0.25em] text-foreground">{label}</span>
+        <span className="text-[10px] tracking-[0.2em] text-foreground">RING</span>
+      </div>
+      <ReadinessRing tone={tone} value={value} className="mt-7" />
+      <p className="mt-6 font-display text-5xl font-extralight tracking-tight text-foreground">{value ?? "—"}</p>
+      <p className="mt-2 text-xs text-foreground">{caption}</p>
+    </GlassCard>
+  );
+}
+
+function SlotCard({
   tone,
   label,
   value,
 }: {
   tone: "human" | "agent";
   label: string;
-  value: number | null | undefined;
+  value?: number | string | null | undefined;
 }) {
   return (
-    <GlassCard tone={tone} className="flex items-center gap-3 px-3 py-2">
-      <ReadinessRing tone={tone} value={value} size={44} />
-      <div>
-        <p
-          className={cn(
-            "text-[10px] uppercase tracking-[0.25em]",
-            tone === "human" ? "text-human" : "text-agent",
-          )}
-        >
-          {label}
-        </p>
-        <p className="font-display text-2xl font-extralight text-foreground">{value ?? "—"}</p>
-      </div>
+    <GlassCard tone={tone} className="flex flex-1 flex-col px-6 pb-6 pt-6">
+      <span className="text-[10px] uppercase tracking-[0.25em] text-foreground">{label}</span>
+      <p className="mt-8 font-display text-4xl font-extralight tracking-tight text-foreground">{value ?? "—"}</p>
     </GlassCard>
   );
 }
