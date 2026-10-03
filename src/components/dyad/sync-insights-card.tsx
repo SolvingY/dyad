@@ -5,25 +5,26 @@ import { useAuth } from "@/hooks/use-auth";
 import { GlassCard } from "@/components/dyad/glass-card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 
-// Sync insights: the user describes recent human + agent behavior and Claude
-// returns actionable synchronization advice. Goes through the agent-call edge
-// function so the call is logged to agent_events like every other Claude call.
+// Sync insights: Claude gets the agent's latest agent_daily row, the human's
+// latest Oura data (added by agent-call) and an optional note from the human,
+// and returns synchronization advice. Goes through the agent-call edge function
+// so the call is logged to agent_events like every other Claude call.
 
 const PROMPT = `You are Dyad's synchronization coach. A human and their AI agent work as a pair.
-Given the descriptions below, produce 3–5 concise, actionable insights to better synchronize them
+Using the data below, produce 3–5 concise, actionable insights to better synchronize them
 (e.g. scheduling agent work around the human's energy, handoffs, review timing, load balancing).
-Format: a short numbered list. Each item: a bold one-line action, then one sentence of why.
-No medical advice. If information is thin, say what to track next.`;
+Every insight must cite exactly one human metric from the Oura data in the system prompt and one
+agent metric from the agent_daily data, each by name and value, e.g. "sleep_score 79" and "error_rate 0".
+Format: a short numbered list. Each item: a bold one-line action, then one sentence of why that cites
+both metrics. Do not make medical claims or diagnoses. If the human's Oura data or the agent's data is
+missing, say so and say what to track next instead of inventing numbers.`;
 
 export function SyncInsightsCard() {
   const { user, loading } = useAuth();
   const [agentId, setAgentId] = useState<string | null>(null);
   const [agentChecked, setAgentChecked] = useState(false);
   const [human, setHuman] = useState("");
-  const [agentText, setAgentText] = useState("");
-  const [withOura, setWithOura] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
@@ -48,12 +49,21 @@ export function SyncInsightsCard() {
     setBusy(true);
     setError(null);
     setResult(null);
-    const content = `${PROMPT}\n\nRecent human behavior:\n${human.trim() || "(not described)"}\n\nRecent agent behavior:\n${agentText.trim() || "(not described)"}`;
+    const { data: agentDay } = await supabase
+      .from("agent_daily")
+      .select(
+        "day, readiness_score, freshness_score, error_rate, error_rate_deviation, retry_rate, correction_rate, cache_hit_rate, baseline_latency_ms, latency_variability_ms, calls_per_hour, call_count, avg_context_fill",
+      )
+      .eq("agent_id", agentId)
+      .order("day", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const content = `${PROMPT}\n\nAgent data (agent_daily):\n${agentDay ? JSON.stringify(agentDay) : "(none yet)"}\n\nHuman's note:\n${human.trim() || "(none)"}`;
     const { data, error: fnErr } = await supabase.functions.invoke("agent-call", {
       body: {
         agent_id: agentId,
         task_id: "sync-insights",
-        include_human_context: withOura,
+        include_human_context: true,
         messages: [{ role: "user", content }],
       },
     });
@@ -93,22 +103,11 @@ export function SyncInsightsCard() {
           <Textarea
             value={human}
             onChange={(e) => setHuman(e.target.value)}
-            placeholder="Human: how you've slept, felt, worked lately…"
+            placeholder="Optional: anything else about how you've slept, felt, worked lately…"
             maxLength={2000}
             rows={3}
           />
-          <Textarea
-            value={agentText}
-            onChange={(e) => setAgentText(e.target.value)}
-            placeholder="Agent: what it's been doing, errors, corrections…"
-            maxLength={2000}
-            rows={3}
-          />
-          <label className="flex items-center gap-2 text-sm text-foreground/60">
-            <Checkbox checked={withOura} onCheckedChange={(v) => setWithOura(v === true)} />
-            Include my latest Oura data
-          </label>
-          <Button type="submit" disabled={busy || !agentId || (!human.trim() && !agentText.trim())}>
+          <Button type="submit" disabled={busy || !agentId}>
             {busy ? "Analyzing…" : "Generate insights"}
           </Button>
           {error && <p className="text-sm text-destructive">{error}</p>}

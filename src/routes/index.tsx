@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { GlassCard } from "@/components/dyad/glass-card";
 import { SyncInsightsCard } from "@/components/dyad/sync-insights-card";
+import { CheckinCard } from "@/components/dyad/checkin-card";
 import { AskDyadCard } from "@/components/dyad/ask-dyad-card";
 import { ReadinessRing } from "@/components/dyad/readiness-ring";
 import { cn } from "@/lib/utils";
@@ -255,6 +256,7 @@ function Dashboard() {
                 (posture ? posture.interruption.replace("_", " ").toLowerCase() : "Needs both readiness scores")
               }
             />
+            <CheckinCard />
             <AskDyadCard />
             <SyncInsightsCard />
           </section>
