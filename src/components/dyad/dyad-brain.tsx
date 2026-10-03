@@ -509,7 +509,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         const fresh = a?.freshness ?? 0.5;
         const load = a?.load ?? 0;
         mats.agent.emissiveIntensity =
-          (0.13 + 0.4 * smooth.a + 0.12 * fresh) * (1 - load * 0.12) * (agentSel ? 1.7 : 1);
+          (0.18 + 0.45 * smooth.a + 0.12 * fresh) * (1 - load * 0.12) * (agentSel ? 1.7 : 1);
         mats.agent.opacity =
           (0.55 + 0.14 * fresh + 0.08 * smooth.a) * (humanSel ? 0.3 : 1) * (agentSel ? 1.2 : 1);
         mats.median.emissiveIntensity = 0.26 + 0.3 * v.center.brightness + (sel === "center" ? 0.15 : 0);
