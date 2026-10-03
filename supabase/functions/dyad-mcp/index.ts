@@ -1,9 +1,11 @@
 // Dyad's MCP server, for outside agents (Claude Code, Cursor, a user's own code).
 //
 // Streamable HTTP transport, stateless: each POST carries one JSON-RPC message
-// (or a batch) and gets a JSON reply. Authenticate with the per-agent key from
-// agent-keys: `Authorization: Bearer dyad_...`. The key identifies both the
-// agent and its human.
+// (or a batch) and gets a JSON reply. Two ways to authenticate:
+//   - OAuth: MCP clients like claude.ai discover Supabase Auth's OAuth 2.1
+//     server from /.well-known/oauth-protected-resource, the human approves on
+//     Dyad's /oauth/consent page, and each app becomes its own external agent.
+//   - API key from agent-keys: `Authorization: Bearer dyad_...`.
 //
 // Tools:
 //   get_vitals       the human's oura_daily and this agent's agent_daily rows
@@ -12,11 +14,11 @@
 //   log_call         report one of this agent's LLM calls to agent_events
 //   should_check_in  ask Dyad's built-in logic whether to check in right now
 //
-// Each key may make RATE_LIMIT tool calls per RATE_WINDOW_SECONDS; the
+// Each agent may make RATE_LIMIT tool calls per RATE_WINDOW_SECONDS; the
 // handshake and tool listing don't count.
 
 import { ACT_AS_USER_HEADER, adminClient } from "../_shared/auth.ts";
-import { hashAgentKey } from "../_shared/agent-key.ts";
+import { KEY_PREFIX, hashAgentKey } from "../_shared/agent-key.ts";
 import { chicagoParts } from "../_shared/chicago.ts";
 import { holdReason } from "../_shared/checkin-rules.ts";
 
@@ -25,11 +27,15 @@ const RATE_WINDOW_SECONDS = 3600;
 
 const SUPPORTED_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
+const SERVER_URL = `${Deno.env.get("SUPABASE_URL")}/functions/v1/dyad-mcp`;
+const METADATA_PATH = "/.well-known/oauth-protected-resource";
+
 const headers = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Expose-Headers": "WWW-Authenticate",
   "Access-Control-Allow-Headers":
     "authorization, content-type, mcp-protocol-version, mcp-session-id",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Content-Type": "application/json",
 };
 
@@ -128,7 +134,7 @@ const TOOLS = [
   },
 ];
 
-type Caller = { keyId: string; agentId: string; userId: string };
+type Caller = { agentId: string; userId: string };
 type Admin = ReturnType<typeof adminClient>;
 
 class ToolError extends Error {}
@@ -325,8 +331,8 @@ async function handle(admin: Admin, caller: Caller, msg: RpcMessage) {
       const name = msg.params?.name;
       const args = (msg.params?.arguments ?? {}) as Record<string, unknown>;
       if (typeof name !== "string") return fail(-32602, "params.name is required");
-      const { data: waitSeconds, error: limitErr } = await admin.rpc("consume_agent_key_call", {
-        p_key_id: caller.keyId,
+      const { data: waitSeconds, error: limitErr } = await admin.rpc("consume_agent_call", {
+        p_agent_id: caller.agentId,
         p_limit: RATE_LIMIT,
         p_window_seconds: RATE_WINDOW_SECONDS,
       });
@@ -355,30 +361,94 @@ async function handle(admin: Admin, caller: Caller, msg: RpcMessage) {
   }
 }
 
+/** The caller for an API key, or null. */
+async function callerFromKey(admin: Admin, key: string): Promise<Caller | null> {
+  const { data } = await admin
+    .from("agent_keys")
+    .select("id, agent_id, user_id")
+    .eq("key_hash", await hashAgentKey(key))
+    .is("revoked_at", null)
+    .maybeSingle();
+  if (!data) return null;
+  await admin
+    .from("agent_keys")
+    .update({ last_used_at: new Date().toISOString() })
+    .eq("id", data.id);
+  return { agentId: data.agent_id, userId: data.user_id };
+}
+
+/** The caller for an OAuth access token, creating the app's agent on first use. */
+async function callerFromOAuth(admin: Admin, token: string): Promise<Caller | null> {
+  const { data, error } = await admin.auth.getUser(token);
+  if (error || !data.user) return null;
+  let clientId: unknown;
+  try {
+    const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    clientId = JSON.parse(atob(payload)).client_id;
+  } catch {
+    return null;
+  }
+  // Only tokens issued to an OAuth app, not ordinary Dyad sign-in sessions.
+  if (typeof clientId !== "string" || !clientId) return null;
+  const userId = data.user.id;
+
+  const find = () =>
+    admin
+      .from("agents")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("oauth_client_id", clientId)
+      .maybeSingle();
+  let { data: agent } = await find();
+  if (!agent) {
+    const { data: client } = await admin.auth.admin.oauth.getClient(clientId);
+    await admin.from("agents").insert({
+      user_id: userId,
+      name: client?.client_name || "Connected app",
+      source: "external",
+      oauth_client_id: clientId,
+    });
+    // Re-read rather than use the insert result, in case a parallel request won.
+    ({ data: agent } = await find());
+  }
+  return agent ? { agentId: agent.id, userId } : null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
+
+  // OAuth protected resource metadata (RFC 9728): tells MCP clients where to sign in.
+  if (req.method === "GET" && new URL(req.url).pathname.endsWith(METADATA_PATH)) {
+    return new Response(
+      JSON.stringify({
+        resource: SERVER_URL,
+        authorization_servers: [`${Deno.env.get("SUPABASE_URL")}/auth/v1`],
+        bearer_methods_supported: ["header"],
+        resource_name: "Dyad",
+      }),
+      { headers },
+    );
+  }
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "method_not_allowed" }), { status: 405, headers });
   }
 
   const admin = adminClient();
-  const key = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  const { data: found } = key
-    ? await admin
-        .from("agent_keys")
-        .select("id, agent_id, user_id")
-        .eq("key_hash", await hashAgentKey(key))
-        .is("revoked_at", null)
-        .maybeSingle()
-    : { data: null };
-  if (!found) {
-    return new Response(JSON.stringify({ error: "invalid_api_key" }), { status: 401, headers });
+  const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  const caller = !token
+    ? null
+    : token.startsWith(KEY_PREFIX)
+      ? await callerFromKey(admin, token)
+      : await callerFromOAuth(admin, token);
+  if (!caller) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: {
+        ...headers,
+        "WWW-Authenticate": `Bearer resource_metadata="${SERVER_URL}${METADATA_PATH}"`,
+      },
+    });
   }
-  await admin
-    .from("agent_keys")
-    .update({ last_used_at: new Date().toISOString() })
-    .eq("id", found.id);
-  const caller = { keyId: found.id, agentId: found.agent_id, userId: found.user_id };
 
   const body = await req.json().catch(() => undefined);
   if (body === undefined) {

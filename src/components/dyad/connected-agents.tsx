@@ -4,8 +4,13 @@ import { GlassCard } from "@/components/dyad/glass-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-// Connect an outside agent (Claude Code, Cursor, your own code) to Dyad's MCP
-// server. Each agent gets its own key, shown once; keys can be revoked.
+// Connect an outside agent to Dyad's MCP server. Apps that support OAuth
+// (claude.ai, Claude Desktop, Claude Code) just need the server URL and sign in;
+// anything else gets an API key, shown once. Both can be disconnected here.
+
+const MCP_URL = `${import.meta.env["VITE_SUPABASE_URL"]}/functions/v1/dyad-mcp`;
+
+type Grant = { client: { id: string; name: string }; granted_at: string };
 
 type KeyRow = {
   id: string;
@@ -20,6 +25,7 @@ type NewKey = { name: string; key: string; mcp_url: string };
 
 export function ConnectedAgents() {
   const [keys, setKeys] = useState<KeyRow[]>([]);
+  const [grants, setGrants] = useState<Grant[]>([]);
   const [name, setName] = useState("");
   const [created, setCreated] = useState<NewKey | null>(null);
   const [busy, setBusy] = useState(false);
@@ -31,7 +37,15 @@ export function ConnectedAgents() {
       .select("id, key_prefix, created_at, last_used_at, revoked_at, agents(name)")
       .order("created_at", { ascending: false });
     setKeys((data as KeyRow[] | null) ?? []);
+    const { data: granted } = await supabase.auth.oauth.listGrants();
+    setGrants(granted ?? []);
   }, []);
+
+  async function disconnect(clientId: string) {
+    const { error } = await supabase.auth.oauth.revokeGrant({ clientId });
+    if (error) setError(error.message);
+    await load();
+  }
 
   useEffect(() => {
     void load();
@@ -74,11 +88,41 @@ export function ConnectedAgents() {
         </p>
       </div>
 
+      <div className="flex flex-col gap-2 text-sm">
+        <p className="text-foreground/90">
+          <strong>Claude</strong> (claude.ai, Desktop, mobile): Settings → Connectors → Add custom
+          connector, paste this URL, then click Connect and approve.
+        </p>
+        <Snippet label="Dyad MCP server URL" text={MCP_URL} />
+        <Snippet label="Claude Code" text={`claude mcp add --transport http dyad ${MCP_URL}`} />
+      </div>
+
+      {grants.length > 0 && (
+        <ul className="flex flex-col gap-2 text-sm">
+          {grants.map((g) => (
+            <li key={g.client.id} className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-foreground/90">{g.client.name || "Connected app"}</p>
+                <p className="text-xs text-muted-foreground">
+                  connected {new Date(g.granted_at).toLocaleString()}
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => disconnect(g.client.id)}>
+                Disconnect
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p className="text-xs uppercase tracking-[0.2em] text-foreground/50">
+        Other agents (API key)
+      </p>
       <form onSubmit={create} className="flex gap-2">
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Agent name, e.g. Claude Code"
+          placeholder="Agent name, e.g. My script"
           maxLength={80}
         />
         <Button type="submit" disabled={busy || !name.trim()}>
