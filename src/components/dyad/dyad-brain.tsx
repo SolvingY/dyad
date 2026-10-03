@@ -160,10 +160,12 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.12;
+      renderer.toneMappingExposure = 1.0;
       renderer.setClearColor(0x000000, 0);
       const canvas = renderer.domElement;
       canvas.className = "block h-full w-full";
+      // Composer output is opaque; screen-blend so black reads as the card behind it.
+      canvas.style.mixBlendMode = "screen";
       wrap!.appendChild(canvas);
 
       const composer = new EffectComposer(renderer);
@@ -254,6 +256,15 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
           : side.includes("left") ? "human" : side.includes("right") ? "agent" : "center";
         return { region, isSurface, isBrainstem };
       };
+
+      // Show the brain itself; vessels, cranial nerves and dura are left out so
+      // the cortex fills the frame. Geometry of what remains is untouched.
+      const HIDDEN = ["arter", "vein", "sinus", "cranial_nerve", "meninges", "dura", "tracts"];
+      const drop: THREEType.Object3D[] = [];
+      model.traverse((obj) => {
+        if ((obj as THREEType.Mesh).isMesh && HIDDEN.some((h) => meta(obj, "bx_cat").includes(h))) drop.push(obj);
+      });
+      drop.forEach((o) => o.removeFromParent());
 
       const meshes: THREEType.Mesh[] = [];
       model.traverse((obj) => {
@@ -380,7 +391,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
       canvas.addEventListener("pointerup", onUp);
 
       // Frame loop — paused when off-screen or tab hidden.
-      const clock = new THREE.Clock();
+      const clock = new THREE.Timer();
       let raf = 0;
       let onScreen = true;
       const tmpColor = new THREE.Color();
@@ -389,8 +400,9 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
 
       const frame = () => {
         raf = requestAnimationFrame(frame);
+        clock.update();
         const dt = Math.min(clock.getDelta(), 0.05);
-        const t = clock.elapsedTime;
+        const t = clock.getElapsed();
         const v = visualRef.current;
         const sel = selectedRef.current;
         const h = v.human;
@@ -450,7 +462,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         const breathe = reduceMotion ? 0 : Math.sin(t * 0.9);
         core.scale.setScalar(1 + 0.12 * breathe);
         halo.scale.setScalar(1 + 0.06 * breathe);
-        bloom.strength = 0.5 + 0.3 * ((smooth.h + smooth.a) / 2);
+        bloom.strength = 0.32 + 0.28 * ((smooth.h + smooth.a) / 2);
 
         if (reduceMotion) uniforms.uTime.value = 0;
         controls.update();
@@ -458,7 +470,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
       };
       const start = () => {
         if (raf || document.hidden || !onScreen) return;
-        clock.getDelta();
+        clock.update();
         raf = requestAnimationFrame(frame);
       };
       const stop = () => {
