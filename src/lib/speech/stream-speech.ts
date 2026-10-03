@@ -11,7 +11,12 @@ export function decodePCM(pending: Uint8Array, incoming: Uint8Array) {
   return { samples, pending: bytes.slice(usable) };
 }
 
-export async function streamSpeech(endpoint: string, text: string, signal?: AbortSignal): Promise<void> {
+export async function streamSpeech(
+  endpoint: string,
+  text: string,
+  token: string,
+  signal?: AbortSignal,
+): Promise<void> {
   signal?.throwIfAborted();
   const context = new AudioContext({ sampleRate: 24000 });
   const sources = new Set<AudioBufferSourceNode>();
@@ -30,7 +35,7 @@ export async function streamSpeech(endpoint: string, text: string, signal?: Abor
     if (context.state === "suspended") await context.resume();
     const response = await fetch(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ text }),
       signal: controller.signal,
     });
