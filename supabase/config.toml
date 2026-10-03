@@ -14,5 +14,5 @@ verify_jwt = false
 [functions.agent-checkin]
 verify_jwt = false
 
-[functions.checkin-respond]
+[functions.dyad-thread]
 verify_jwt = false

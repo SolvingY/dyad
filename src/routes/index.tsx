@@ -3,9 +3,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { GlassCard } from "@/components/dyad/glass-card";
-import { SyncInsightsCard } from "@/components/dyad/sync-insights-card";
-import { CheckinCard } from "@/components/dyad/checkin-card";
-import { AskDyadCard } from "@/components/dyad/ask-dyad-card";
+import { DyadThread } from "@/components/dyad/dyad-thread";
 import { ReadinessRing } from "@/components/dyad/readiness-ring";
 import { cn } from "@/lib/utils";
 import { DyadBrain, type BrainRegion } from "@/components/dyad/dyad-brain";
@@ -258,9 +256,7 @@ function Dashboard() {
                 (posture ? posture.interruption.replace("_", " ").toLowerCase() : "Needs both readiness scores")
               }
             />
-            <CheckinCard />
-            <AskDyadCard />
-            <SyncInsightsCard />
+            <DyadThread />
           </section>
 
           <section aria-label="Agent" className="flex flex-col gap-5">

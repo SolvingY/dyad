@@ -8,14 +8,15 @@
 //      or 3 asks already went out today,
 //   4. otherwise asks Claude (through agent-call, so the call is logged) for
 //      { decision, reason, message },
-//   5. always inserts a checkins row, holds included.
+//   5. always inserts a checkins row (the decision log), holds included, and
+//      posts the question or the hold into the Dyad thread (thread_messages).
 //
 // Only the cron job can call this: it must send the secret stored in Vault.
 
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { ACT_AS_USER_HEADER, adminClient } from "../_shared/auth.ts";
+import { TZ, chicagoParts } from "../_shared/chicago.ts";
 
-const TZ = "America/Chicago";
 const FIRST_HOUR = 9;
 const LAST_HOUR = 18; // 6pm
 const MAX_ASKS_PER_DAY = 3;
@@ -25,22 +26,6 @@ const PROMPT = `You are an AI agent checking in on the human you work with. Deci
 Ask only when it would help you plan your work around their energy, for example after a poor night's sleep, a big change in readiness, or a long gap since you last heard from them. Otherwise hold.
 If you ask, write one short, friendly message of at most two sentences, with at most one question. Don't make medical claims or diagnoses.
 Reply with JSON only, no other text: {"decision": "ask" | "hold", "reason": "<one sentence>", "message": "<message, or null if hold>"}`;
-
-function chicagoParts(d: Date) {
-  const p = Object.fromEntries(
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone: TZ,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      hourCycle: "h23",
-    })
-      .formatToParts(d)
-      .map((x) => [x.type, x.value]),
-  );
-  return { date: `${p.year}-${p.month}-${p.day}`, hour: Number(p.hour) };
-}
 
 /** Calls another edge function as the given user. */
 function callAsUser(fn: string, userId: string, body: unknown) {
@@ -135,6 +120,7 @@ Deno.serve(async (req) => {
       let decision: "ask" | "hold" = "hold";
       let reason: string;
       let message: string | null = null;
+      let eventId: string | null = null;
 
       const answeredRecently = today.some(
         (c) =>
@@ -160,6 +146,7 @@ Deno.serve(async (req) => {
           messages: [{ role: "user", content: `${PROMPT}\n\nData:\n${JSON.stringify(context)}` }],
         });
         const body = await res.json().catch(() => null);
+        eventId = body?.event_id ?? null;
         const text: string = (body?.content ?? [])
           .filter((b: { type: string }) => b.type === "text")
           .map((b: { text: string }) => b.text)
@@ -189,6 +176,15 @@ Deno.serve(async (req) => {
 
       const { error } = await admin.from("checkins").insert({ ...row, decision, reason, message });
       if (error) console.error(`agent-checkin: insert failed: ${error.message}`);
+      const { error: threadErr } = await admin.from("thread_messages").insert({
+        user_id: userId,
+        agent_id: agentId,
+        role: "agent",
+        kind: decision === "ask" ? "checkin" : "hold",
+        content: decision === "ask" ? message : reason || "Holding.",
+        event_id: eventId,
+      });
+      if (threadErr) console.error(`agent-checkin: thread insert failed: ${threadErr.message}`);
       results.push({ user_id: userId, decision });
     } catch (err) {
       console.error(`agent-checkin: ${err instanceof Error ? err.message : err}`);
