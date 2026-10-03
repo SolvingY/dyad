@@ -130,8 +130,8 @@ function Landing() {
 
         {/* HERO text */}
         <section className="pointer-events-none relative -mt-[100dvh] flex h-dvh flex-col">
-          <header className="pointer-events-auto flex items-center justify-between px-6 pt-6 md:px-10">
-            <BrandLogo className="h-7 md:h-9" />
+          <header className="landing-liquid-nav pointer-events-auto fixed inset-x-0 top-0 z-50 flex items-center justify-between px-6 py-4 md:px-10">
+            <BrandLogo className="h-8 md:h-10" />
             <Link to="/auth" className="text-[11px] uppercase tracking-[0.25em] text-foreground hover:text-agent">
               Sign in
             </Link>
