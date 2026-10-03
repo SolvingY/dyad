@@ -14,47 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      agent_keys: {
-        Row: {
-          agent_id: string
-          created_at: string
-          id: string
-          key_hash: string
-          key_prefix: string
-          last_used_at: string | null
-          revoked_at: string | null
-          user_id: string
-        }
-        Insert: {
-          agent_id: string
-          created_at?: string
-          id?: string
-          key_hash: string
-          key_prefix: string
-          last_used_at?: string | null
-          revoked_at?: string | null
-          user_id: string
-        }
-        Update: {
-          agent_id?: string
-          created_at?: string
-          id?: string
-          key_hash?: string
-          key_prefix?: string
-          last_used_at?: string | null
-          revoked_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agent_keys_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       agent_daily: {
         Row: {
           activity_score: number | null
@@ -193,6 +152,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "agent_events_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_keys: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_keys_agent_id_fkey"
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
