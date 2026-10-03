@@ -95,7 +95,7 @@ function Landing() {
         <div className="relative h-dvh overflow-hidden lg:sticky lg:top-0">
           {rich && <Particles />}
           <div
-            className="absolute inset-0 flex items-center justify-center"
+            className="absolute inset-0 flex items-center justify-center mix-blend-screen"
             style={{
               opacity: shown ? 1 : 0,
               transition: "opacity 3s ease-out",
@@ -103,9 +103,9 @@ function Landing() {
             }}
           >
             <div
-              className="relative h-[62vh] w-[min(92vw,88vh)] lg:h-[70vh]"
+              className="relative h-[52vh] w-[min(92vw,80vh)] lg:h-[62vh]"
               style={{
-                transform: `scale(${scale}) rotateX(${-tilt.y * 6}deg) rotateY(${tilt.x * 8}deg)`,
+                transform: `translateY(${-(1 - progress) * 12}vh) scale(${scale}) rotateX(${-tilt.y * 6}deg) rotateY(${tilt.x * 8}deg)`,
                 transition: "transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
               }}
             >
