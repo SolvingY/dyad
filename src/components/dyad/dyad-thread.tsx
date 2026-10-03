@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import ReactMarkdown from "react-markdown";
-import { Mic, Pause, Send, Square } from "lucide-react";
+import { Mic, Pause, Send, Square, Volume2, VolumeX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
@@ -57,6 +57,36 @@ export function DyadThread() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => setCanDictate(!!getRecognitionCtor()), []);
+
+  // Spoken replies: read new agent messages aloud with the browser's voice.
+  const [canSpeak, setCanSpeak] = useState(false);
+  const [voiceOn, setVoiceOn] = useState(false);
+  const lastSpokenRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    setCanSpeak(typeof window !== "undefined" && "speechSynthesis" in window);
+    setVoiceOn(localStorage.getItem("dyad-voice") === "1");
+    return () => {
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    };
+  }, []);
+  useEffect(() => {
+    if (!messages) return;
+    const latest = [...messages].reverse().find((m) => m.role !== "human" && m.role !== "user" && m.kind !== "hold");
+    const id = latest?.id ?? null;
+    if (lastSpokenRef.current === undefined) {
+      lastSpokenRef.current = id; // don't read old history on first load
+      return;
+    }
+    if (!latest || id === lastSpokenRef.current) return;
+    lastSpokenRef.current = id;
+    if (!voiceOn || !canSpeak) return;
+    const plain = latest.content.replace(/[#*_`>\[\]()]/g, "").trim();
+    if (!plain) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(plain);
+    u.lang = navigator.language || "en-US";
+    window.speechSynthesis.speak(u);
+  }, [messages, voiceOn, canSpeak]);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -122,9 +152,18 @@ export function DyadThread() {
   async function send(e: FormEvent) {
     e.preventDefault();
     const content = text.trim();
-    if (!content) return;
+    if (!content || busy) return;
     recognitionRef.current?.stop();
-    if (await post(content, null)) setText("");
+    setText("");
+    baseTextRef.current = "";
+    if (!(await post(content, null))) setText(content);
+  }
+
+  function toggleVoice() {
+    const next = !voiceOn;
+    setVoiceOn(next);
+    localStorage.setItem("dyad-voice", next ? "1" : "0");
+    if (!next) window.speechSynthesis.cancel();
   }
 
   async function tapEnergy(n: number) {
@@ -312,6 +351,20 @@ export function DyadThread() {
           aria-label="Message"
           className="min-w-0 flex-1 bg-transparent px-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
         />
+        {canSpeak && (
+          <button
+            type="button"
+            onClick={toggleVoice}
+            aria-label={voiceOn ? "Turn off spoken replies" : "Turn on spoken replies"}
+            aria-pressed={voiceOn}
+            className={cn(
+              "flex size-11 shrink-0 items-center justify-center rounded-full border transition-colors",
+              voiceOn ? "border-agent text-agent" : "border-glass-line-luminous text-foreground",
+            )}
+          >
+            {voiceOn ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
+          </button>
+        )}
         <button
           type="submit"
           disabled={busy || !text.trim()}
