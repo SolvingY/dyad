@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgentRouteImport } from './routes/agent'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -19,6 +20,11 @@ import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as OuraCallbackRouteImport } from './routes/oura/callback'
 import { Route as ApiPublicPasswordResetRouteImport } from './routes/api/public/password-reset'
 
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgentRoute = AgentRouteImport.update({
   id: '/agent',
   path: '/agent',
@@ -66,6 +72,7 @@ const ApiPublicPasswordResetRoute = ApiPublicPasswordResetRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
   '/agent': typeof AgentRoute
   '/app': typeof AppRoute
   '/privacy': typeof PrivacyRoute
@@ -77,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/api/public/password-reset': typeof ApiPublicPasswordResetRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/agent': typeof AgentRoute
   '/app': typeof AppRoute
   '/privacy': typeof PrivacyRoute
@@ -89,6 +97,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/agent': typeof AgentRoute
   '/app': typeof AppRoute
   '/privacy': typeof PrivacyRoute
@@ -102,6 +111,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/agent'
     | '/app'
     | '/privacy'
@@ -113,6 +123,7 @@ export interface FileRouteTypes {
     | '/api/public/password-reset'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/agent'
     | '/app'
     | '/privacy'
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '/api/public/password-reset'
   id:
     | '__root__'
+    | '/'
     | '/agent'
     | '/app'
     | '/privacy'
@@ -136,6 +148,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   AgentRoute: typeof AgentRoute
   AppRoute: typeof AppRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -149,6 +162,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/agent': {
       id: '/agent'
       path: '/agent'
@@ -216,6 +236,7 @@ declare module '@tanstack/react-router' {
 }
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   AgentRoute: AgentRoute,
   AppRoute: AppRoute,
   PrivacyRoute: PrivacyRoute,

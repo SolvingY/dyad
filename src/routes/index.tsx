@@ -103,7 +103,7 @@ function Landing() {
             }}
           >
             <div
-              className="relative h-[62vh] w-[min(92vw,62vh*1.4)] lg:h-[70vh]"
+              className="relative h-[62vh] w-[min(92vw,88vh)] lg:h-[70vh]"
               style={{
                 transform: `scale(${scale}) rotateX(${-tilt.y * 6}deg) rotateY(${tilt.x * 8}deg)`,
                 transition: "transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
