@@ -128,17 +128,13 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
 
     (async () => {
       try {
-        const [THREE, { OrbitControls }, { EffectComposer }, { RenderPass }, { UnrealBloomPass }, gltf] =
-          await Promise.all([
-            import("three"),
-            import("three/addons/controls/OrbitControls.js"),
-            import("three/addons/postprocessing/EffectComposer.js"),
-            import("three/addons/postprocessing/RenderPass.js"),
-            import("three/addons/postprocessing/UnrealBloomPass.js"),
-            loadBrainModel(),
-          ]);
+        const [THREE, { OrbitControls }, gltf] = await Promise.all([
+          import("three"),
+          import("three/addons/controls/OrbitControls.js"),
+          loadBrainModel(),
+        ]);
         if (disposed) return;
-        build(THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, gltf);
+        build(THREE, OrbitControls, gltf);
         setStatus("ready");
       } catch (e) {
         console.error("Dyad brain failed to load", e);
@@ -149,9 +145,6 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
     function build(
       THREE: typeof THREEType,
       OrbitControls: typeof import("three/addons/controls/OrbitControls.js").OrbitControls,
-      EffectComposer: typeof import("three/addons/postprocessing/EffectComposer.js").EffectComposer,
-      RenderPass: typeof import("three/addons/postprocessing/RenderPass.js").RenderPass,
-      UnrealBloomPass: typeof import("three/addons/postprocessing/UnrealBloomPass.js").UnrealBloomPass,
       gltf: GLTF,
     ) {
       const scene = new THREE.Scene();
@@ -161,17 +154,11 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.0;
+      // Fully transparent clear: the page background shows through, no black box.
       renderer.setClearColor(0x000000, 0);
       const canvas = renderer.domElement;
       canvas.className = "block h-full w-full";
-      // Composer output is opaque; screen-blend so black reads as the card behind it.
-      canvas.style.mixBlendMode = "screen";
       wrap!.appendChild(canvas);
-
-      const composer = new EffectComposer(renderer);
-      composer.addPass(new RenderPass(scene, camera));
-      const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.45, 0.72, 0.12);
-      composer.addPass(bloom);
 
       const controls = new OrbitControls(camera, canvas);
       controls.enableDamping = true;
