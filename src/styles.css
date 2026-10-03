@@ -290,3 +290,15 @@
 @media (prefers-reduced-motion: reduce) {
   .dyad-logo-glow { animation: none; }
 }
+
+/* Landing: slow float for the hero brain */
+@keyframes dyad-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+@utility dyad-float {
+  animation: dyad-float 9s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dyad-float { animation: none; }
+}

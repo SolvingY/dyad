@@ -9,8 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgentRouteImport } from './routes/agent'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -19,14 +19,14 @@ import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as OuraCallbackRouteImport } from './routes/oura/callback'
 import { Route as ApiPublicPasswordResetRouteImport } from './routes/api/public/password-reset'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AgentRoute = AgentRouteImport.update({
   id: '/agent',
   path: '/agent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -66,8 +66,8 @@ const ApiPublicPasswordResetRoute = ApiPublicPasswordResetRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/agent': typeof AgentRoute
+  '/app': typeof AppRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
@@ -77,8 +77,8 @@ export interface FileRoutesByFullPath {
   '/api/public/password-reset': typeof ApiPublicPasswordResetRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/agent': typeof AgentRoute
+  '/app': typeof AppRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
@@ -89,8 +89,8 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/agent': typeof AgentRoute
+  '/app': typeof AppRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
@@ -102,8 +102,8 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/agent'
+    | '/app'
     | '/privacy'
     | '/reset-password'
     | '/terms'
@@ -113,8 +113,8 @@ export interface FileRouteTypes {
     | '/api/public/password-reset'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/agent'
+    | '/app'
     | '/privacy'
     | '/reset-password'
     | '/terms'
@@ -124,8 +124,8 @@ export interface FileRouteTypes {
     | '/api/public/password-reset'
   id:
     | '__root__'
-    | '/'
     | '/agent'
+    | '/app'
     | '/privacy'
     | '/reset-password'
     | '/terms'
@@ -136,8 +136,8 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AgentRoute: typeof AgentRoute
+  AppRoute: typeof AppRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermsRoute: typeof TermsRoute
@@ -149,18 +149,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/agent': {
       id: '/agent'
       path: '/agent'
       fullPath: '/agent'
       preLoaderRoute: typeof AgentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -216,8 +216,8 @@ declare module '@tanstack/react-router' {
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AgentRoute: AgentRoute,
+  AppRoute: AppRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermsRoute: TermsRoute,
