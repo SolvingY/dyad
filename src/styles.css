@@ -283,7 +283,7 @@
 }
 
 @keyframes dyad-logo-breathe {
-  0%, 100% { opacity: 0.92; }
+  0%, 100% { opacity: 1; }
   50% { opacity: 1; }
 }
 

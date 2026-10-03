@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import ReactMarkdown from "react-markdown";
-import { Mic, Send, Square } from "lucide-react";
+import { Mic, Pause, Send, Square } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
@@ -226,7 +226,8 @@ export function DyadThread() {
         )}
         {messages?.map((m) =>
           m.kind === "hold" ? (
-            <p key={m.id} className="text-center text-[11px] text-muted-foreground">
+            <p key={m.id} className="flex items-center justify-center gap-1.5 text-center text-[11px] text-foreground">
+              <Pause aria-hidden="true" className="size-3 shrink-0" />
               Agent held off · {m.content}
             </p>
           ) : m.role === "human" ? (
