@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { GlassCard } from "@/components/dyad/glass-card";
 
-export const MCP_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dyad-mcp`;
+export const MCP_URL = `${import.meta.env["VITE_SUPABASE_URL"]}/functions/v1/dyad-mcp`;
 
 function CopyLine({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
