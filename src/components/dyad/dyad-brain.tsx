@@ -265,6 +265,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         if ((obj as THREEType.Mesh).isMesh && HIDDEN.some((h) => meta(obj, "bx_cat").includes(h))) drop.push(obj);
       });
       drop.forEach((o) => o.removeFromParent());
+      console.log("DBG drop", drop.length, getComputedStyle(canvas).mixBlendMode);
 
       const meshes: THREEType.Mesh[] = [];
       model.traverse((obj) => {
