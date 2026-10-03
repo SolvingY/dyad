@@ -11,12 +11,9 @@
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, getCallerId } from "../_shared/auth.ts";
 import { chicagoParts } from "../_shared/chicago.ts";
+import { THREAD_SYSTEM } from "../_shared/thread-prompt.ts";
 
 const HISTORY = 20;
-
-const SYSTEM = `You are the agent half of Dyad, an AI agent working with one human. Be brief.
-Refer to your own vitals as well as the human's when they matter. Ask at most one question per message.
-No medical claims or diagnoses.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -119,7 +116,7 @@ Deno.serve(async (req) => {
   while (turns.length && turns[0].role === "assistant") turns.shift();
 
   const system =
-    `${SYSTEM}\n\nThe human's Oura data today: ${oura ? JSON.stringify(oura) : "none yet"}` +
+    `${THREAD_SYSTEM}\n\nThe human's Oura data today: ${oura ? JSON.stringify(oura) : "none yet"}` +
     `\nYour own vitals today (agent_daily): ${agentDay ? JSON.stringify(agentDay) : "none yet"}`;
 
   const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/agent-call`, {

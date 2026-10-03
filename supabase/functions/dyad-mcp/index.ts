@@ -14,6 +14,7 @@
 //   log_call         report one of this agent's LLM calls to agent_events
 //   should_check_in  ask Dyad's built-in logic whether to check in right now
 //
+// Each tool call is logged to agent_events as the agent's telemetry.
 // Each agent may make RATE_LIMIT tool calls per RATE_WINDOW_SECONDS; the
 // handshake and tool listing don't count.
 
@@ -293,6 +294,36 @@ async function callTool(
   throw new ToolError(`Unknown tool: ${name}`);
 }
 
+// Every tool call counts toward the agent's vitals, so a connected agent has
+// vitals even if it never reports its own LLM calls. log_call is skipped: the
+// call it reports is the telemetry. Reading vitals or the thread also counts as
+// a context refresh.
+async function logToolCall(
+  admin: Admin,
+  agentId: string,
+  tool: string,
+  started: number,
+  error: string | null,
+) {
+  if (tool === "log_call") return;
+  const rows: Record<string, unknown>[] = [
+    {
+      agent_id: agentId,
+      event_type: "llm_call",
+      model: `mcp:${tool}`.slice(0, 100),
+      task_id: "mcp",
+      latency_ms: Date.now() - started,
+      status: error ? "error" : "ok",
+      error,
+    },
+  ];
+  if (!error && (tool === "get_vitals" || tool === "get_thread")) {
+    rows.push({ agent_id: agentId, event_type: "context_refresh", task_id: "mcp" });
+  }
+  const { error: logErr } = await admin.from("agent_events").insert(rows);
+  if (logErr) console.error(`dyad-mcp: logging tool call failed: ${logErr.message}`);
+}
+
 type RpcMessage = {
   jsonrpc?: string;
   id?: string | number | null;
@@ -347,12 +378,15 @@ async function handle(admin: Admin, caller: Caller, msg: RpcMessage) {
         const text = `Rate limited: ${RATE_LIMIT} tool calls per hour. Retry in ${waitSeconds} seconds.`;
         return reply({ content: [{ type: "text", text }], isError: true });
       }
+      const started = Date.now();
       try {
         const result = await callTool(admin, caller, name, args);
+        await logToolCall(admin, caller.agentId, name, started, null);
         return reply({ content: [{ type: "text", text: JSON.stringify(result) }] });
       } catch (err) {
         const text = err instanceof Error ? err.message : String(err);
         if (!(err instanceof ToolError)) console.error(`dyad-mcp: ${name}: ${text}`);
+        await logToolCall(admin, caller.agentId, name, started, text);
         return reply({ content: [{ type: "text", text }], isError: true });
       }
     }

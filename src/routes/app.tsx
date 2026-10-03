@@ -50,6 +50,81 @@ function localDate(d = new Date()) {
 
 type SyncState = "idle" | "syncing" | "ok" | "failed";
 
+export type AgentOption = { id: string; name: string; source: string };
+
+// Which agent the dashboard follows, remembered per browser.
+const AGENT_KEY = "dyad.selectedAgent";
+function readSelectedAgent() {
+  try {
+    return localStorage.getItem(AGENT_KEY);
+  } catch {
+    return null;
+  }
+}
+function saveSelectedAgent(id: string) {
+  try {
+    localStorage.setItem(AGENT_KEY, id);
+  } catch {
+    // Private mode etc.: the choice just isn't remembered.
+  }
+}
+
+// Alignment: 100 minus the gap between human and agent readiness, averaged
+// over the last 7 days where both have a score.
+function alignment(ouraRows: OuraRow[], agentRows: AgentRow[]) {
+  const since = localDate(new Date(Date.now() - 6 * 86_400_000));
+  const agentByDay = new Map(agentRows.map((r) => [r.day, r.readiness_score]));
+  const gaps = ouraRows.flatMap((o) => {
+    const a = agentByDay.get(o.day);
+    return o.day >= since && o.readiness_score != null && a != null
+      ? [100 - Math.abs(o.readiness_score - a)]
+      : [];
+  });
+  if (!gaps.length) return null;
+  return { value: Math.round(gaps.reduce((x, y) => x + y, 0) / gaps.length), days: gaps.length };
+}
+
+// Agent messages the human hasn't seen, and the daily greeting. The greeting
+// function is a no-op after the first call of the day.
+function useUnread(userId: string | undefined) {
+  const [unread, setUnread] = useState(0);
+
+  const count = useCallback(async () => {
+    if (!userId) return;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("thread_seen_at")
+      .eq("id", userId)
+      .maybeSingle();
+    const since = profile?.thread_seen_at ?? new Date(Date.now() - 86_400_000).toISOString();
+    const { count: n } = await supabase
+      .from("thread_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "agent")
+      .neq("kind", "hold")
+      .gt("created_at", since);
+    setUnread(n ?? 0);
+  }, [userId]);
+
+  const markSeen = useCallback(async () => {
+    if (!userId) return;
+    setUnread(0);
+    await supabase
+      .from("profiles")
+      .upsert({ id: userId, thread_seen_at: new Date().toISOString() }, { onConflict: "id" });
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    void (async () => {
+      await supabase.functions.invoke("dyad-greeting", { method: "POST" }).catch(() => null);
+      await count();
+    })();
+  }, [userId, count]);
+
+  return { unread, markSeen };
+}
+
 // Today's oura_daily and agent_daily rows for the signed-in user, plus the
 // existing oura-sync (run once on sign-in, and on Retry).
 function useDyadData() {
@@ -58,6 +133,10 @@ function useDyadData() {
   const [ouraError, setOuraError] = useState<string | null>(null);
   const [agentRows, setAgentRows] = useState<AgentRow[]>([]);
   const [agentError, setAgentError] = useState<string | null>(null);
+  const [agents, setAgents] = useState<AgentOption[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(() =>
+    typeof window === "undefined" ? null : readSelectedAgent(),
+  );
   const [ouraConnected, setOuraConnected] = useState<boolean | null>(null);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [syncState, setSyncState] = useState<SyncState>("idle");
@@ -80,18 +159,22 @@ function useDyadData() {
     setOuraRows(data ?? []);
   }, []);
 
+  // The selected agent's rows; the built-in agent if none is picked or the
+  // picked one is gone.
   const loadAgent = useCallback(async () => {
-    const { data: agent, error: agentErr } = await supabase
+    const { data: list, error: agentErr } = await supabase
       .from("agents")
-      .select("id")
-      .eq("source", "builtin")
-      .order("created_at")
-      .limit(1)
-      .maybeSingle();
+      .select("id, name, source")
+      .order("created_at");
     if (agentErr) {
       setAgentError(agentErr.message);
       return;
     }
+    setAgents(list ?? []);
+    const agent =
+      list?.find((a) => a.id === selectedAgentId) ??
+      list?.find((a) => a.source === "builtin") ??
+      list?.[0];
     if (!agent) return;
     const { data, error } = await supabase
       .from("agent_daily")
@@ -106,6 +189,11 @@ function useDyadData() {
     }
     setAgentError(null);
     setAgentRows(data ?? []);
+  }, [selectedAgentId]);
+
+  const selectAgent = useCallback((id: string) => {
+    saveSelectedAgent(id);
+    setSelectedAgentId(id);
   }, []);
 
   const sync = useCallback(async () => {
@@ -143,11 +231,34 @@ function useDyadData() {
       return;
     }
     void loadOura();
-    void loadAgent();
     void sync();
-  }, [user?.id, loadOura, loadAgent, sync]);
+  }, [user?.id, loadOura, sync]);
 
-  return { user, ouraRows, ouraError, agentRows, agentError, ouraConnected, lastSync, syncState, sync };
+  // Separate so switching agents doesn't re-run the Oura sync.
+  useEffect(() => {
+    if (user) void loadAgent();
+  }, [user?.id, loadAgent]);
+
+  const selectedAgent =
+    agents.find((a) => a.id === selectedAgentId) ??
+    agents.find((a) => a.source === "builtin") ??
+    agents[0] ??
+    null;
+
+  return {
+    user,
+    ouraRows,
+    ouraError,
+    agentRows,
+    agentError,
+    agents,
+    selectedAgent,
+    selectAgent,
+    ouraConnected,
+    lastSync,
+    syncState,
+    sync,
+  };
 }
 
 async function connectOura() {
@@ -202,6 +313,9 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
   const agentDay = agentRows.find((r) => r.day === localDate()) ?? null;
   const latestAgent = agentRows[0] ?? null;
   const [region, setRegion] = useState<BrainRegion>("center");
+  const align = useMemo(() => alignment(ouraRows, agentRows), [ouraRows, agentRows]);
+  const { unread, markSeen } = useUnread(d.user?.id);
+  const agentTitle = d.selectedAgent?.source === "builtin" ? "Agent" : (d.selectedAgent?.name ?? "Agent");
 
   const human = useMemo(() => toHumanVitals(oura), [oura]);
   const agent = useMemo(() => toAgentVitals(latestAgent), [latestAgent]);
@@ -238,6 +352,22 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
     <div className="dyad-ambient relative min-h-dvh">
       <main className="relative mx-auto flex w-full max-w-7xl flex-col px-4 pb-10 pt-4 md:px-6">
         <Header isAdmin={isAdmin} />
+
+        {unread > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              document.getElementById("dyad-thread")?.scrollIntoView({ behavior: "smooth" });
+              void markSeen();
+            }}
+            className="glass-card mt-3 flex items-center gap-3 self-center rounded-full px-4 py-2 text-xs text-foreground hover:text-agent"
+          >
+            <span className="flex size-5 items-center justify-center rounded-full bg-agent text-[10px] font-medium text-background">
+              {unread}
+            </span>
+            {unread === 1 ? "New message from your agent" : `${unread} new messages from your agent`}
+          </button>
+        )}
 
         <div className="mt-3 flex flex-col gap-5 lg:mt-6 lg:grid lg:h-[calc(100dvh-6rem)] lg:min-h-0 lg:grid-cols-[17rem_1fr_17rem]">
           <aside
@@ -351,7 +481,11 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
                 )}
               </div>
             </div>
-            <div className="flex h-[70dvh] min-h-0 flex-col lg:h-auto lg:flex-1">
+            <div
+              id="dyad-thread"
+              onFocusCapture={() => unread > 0 && void markSeen()}
+              className="flex h-[70dvh] min-h-0 flex-col lg:h-auto lg:flex-1"
+            >
               <DyadThread />
             </div>
           </section>
@@ -365,7 +499,7 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
           >
             <SideCard
               tone="agent"
-              title="Agent"
+              title={agentTitle}
               value={agentDay?.readiness_score}
               caption={
                 d.agentError
@@ -375,6 +509,24 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
                     : "No agent activity today"
               }
               stats={agentStats}
+              footer={
+                d.agents.length > 1 && (
+                  <label className="flex flex-col gap-1.5 border-t border-glass-line/60 pt-4 text-[11px] text-muted-foreground">
+                    Showing
+                    <select
+                      value={d.selectedAgent?.id ?? ""}
+                      onChange={(e) => d.selectAgent(e.target.value)}
+                      className="rounded-lg border border-glass-line/60 bg-background/60 px-2 py-1.5 text-xs text-foreground"
+                    >
+                      {d.agents.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.source === "builtin" ? `${a.name} (built-in)` : a.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )
+              }
             />
           </aside>
         </div>
@@ -400,8 +552,13 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
             <ColumnHeader title="Cross-analysis" dotClassName="bg-gradient-to-br from-human to-agent shadow-[0_0_12px_var(--glow-dyad)]" />
             <ReadinessCard
               tone="dyad"
-              label="Today's posture"
-              caption={posture ? posture.interruption.replace("_", " ").toLowerCase() : "Needs both readiness scores"}
+              label="Alignment"
+              value={align?.value}
+              caption={
+                align
+                  ? `Readiness match · ${align.days} ${align.days === 1 ? "day" : "days"}${posture ? ` · ${posture.interruption.replace("_", " ").toLowerCase()}` : ""}`
+                  : "Needs both readiness scores"
+              }
             />
           </section>
           <section aria-label="Agent detail" className="flex flex-col gap-5">
