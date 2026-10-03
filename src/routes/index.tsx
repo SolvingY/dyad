@@ -71,7 +71,17 @@ function Dashboard() {
           </section>
         </div>
 
-        <p className="mt-14 text-center text-[11px] uppercase tracking-[0.3em] text-muted-foreground/60">
+        <footer className="mt-14 flex items-center justify-center gap-4 text-[11px] uppercase tracking-[0.25em] text-muted-foreground/60">
+          <a href="/terms" className="transition-colors hover:text-foreground/80">
+            Terms
+          </a>
+          <span aria-hidden="true" className="size-1 rounded-full bg-glass-line-luminous" />
+          <a href="/privacy" className="transition-colors hover:text-foreground/80">
+            Privacy
+          </a>
+        </footer>
+
+        <p className="mt-6 text-center text-[11px] uppercase tracking-[0.3em] text-muted-foreground/60">
           Shell build · schema pending
         </p>
       </main>
