@@ -554,11 +554,17 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         const breathe = reduceMotion ? 0 : Math.sin(t * 0.9);
         core.scale.setScalar(1 + 0.12 * breathe);
         halo.scale.setScalar(1 + 0.06 * breathe);
-        bloom.strength = 0.22 + 0.2 * ((smooth.h + smooth.a) / 2);
+        // Neural connections: firing rate follows each side's activity; the
+        // selected side's connections brighten.
+        lineUniforms.uTime.value = reduceMotion ? 0 : t;
+        lineUniforms.uRateH.value = h ? 0.25 + h.activity * 0.75 : 0.3;
+        lineUniforms.uRateA.value = a ? 0.25 + a.activity * 0.75 : 0.3;
+        lineUniforms.uBoostH.value = humanSel ? 1.6 : agentSel ? 0.4 : 1;
+        lineUniforms.uBoostA.value = agentSel ? 1.6 : humanSel ? 0.4 : 1;
 
         if (reduceMotion) uniforms.uTime.value = 0;
         controls.update();
-        composer.render();
+        renderer.render(scene, camera);
       };
       const start = () => {
         if (raf || document.hidden || !onScreen) return;
