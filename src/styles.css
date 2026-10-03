@@ -265,3 +265,12 @@
     opacity: 0.35;
   }
 }
+
+/* Ask Dyad markdown answers */
+.ask-dyad-md > * + * { margin-top: 0.6em; }
+.ask-dyad-md ul { list-style: disc; padding-left: 1.25em; }
+.ask-dyad-md ol { list-style: decimal; padding-left: 1.25em; }
+.ask-dyad-md li + li { margin-top: 0.25em; }
+.ask-dyad-md strong { color: var(--foreground); font-weight: 500; }
+.ask-dyad-md h1, .ask-dyad-md h2, .ask-dyad-md h3 { color: var(--foreground); font-weight: 500; font-size: 0.95em; letter-spacing: 0.02em; }
+.ask-dyad-md code { font-size: 0.9em; opacity: 0.9; }
