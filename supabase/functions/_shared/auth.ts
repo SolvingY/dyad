@@ -10,8 +10,14 @@ export function adminClient(): SupabaseClient {
 /** Returns the signed-in caller's user id, or null if the request has no valid session. */
 export async function getCallerId(req: Request, admin: SupabaseClient): Promise<string | null> {
   const jwt = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
-  if (!jwt) return null;
+  if (!jwt) {
+    console.warn("getCallerId: no Authorization header");
+    return null;
+  }
   const { data, error } = await admin.auth.getUser(jwt);
-  if (error || !data.user) return null;
+  if (error || !data.user) {
+    console.warn("getCallerId: token rejected:", error?.message ?? "no user");
+    return null;
+  }
   return data.user.id;
 }
