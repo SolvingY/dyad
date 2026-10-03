@@ -83,11 +83,28 @@ function useDyadData() {
 
     void loadOura();
     void loadAgent();
-    void supabase.functions.invoke("oura-sync").then(({ data }) => {
-      if (cancelled) return;
-      setOuraConnected(typeof data?.connected === "boolean" ? data.connected : null);
-      if (data?.connected) void loadOura();
-    });
+    async function syncOura() {
+      // Only call oura-sync with a live session token; otherwise the function
+      // rejects with 401 not_signed_in.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token || cancelled) return;
+      try {
+        const { data, error } = await supabase.functions.invoke("oura-sync", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (cancelled) return;
+        if (error) {
+          console.warn("oura-sync failed", error.message);
+          return;
+        }
+        setOuraConnected(typeof data?.connected === "boolean" ? data.connected : null);
+        if (data?.connected) void loadOura();
+      } catch (e) {
+        console.warn("oura-sync failed", e);
+      }
+    }
+    void syncOura();
 
     return () => {
       cancelled = true;
