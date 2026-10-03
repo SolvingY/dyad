@@ -133,7 +133,7 @@ function PrivacyPage() {
             <li>Delete your account and personal information;</li>
             <li>Export your data in a portable, machine-readable format;</li>
             <li>Object to or restrict certain processing, or withdraw consent where processing is based on consent;</li>
-            <li> lodge a complaint with your local data protection authority.</li>
+            <li>Lodge a complaint with your local data protection authority.</li>
           </ul>
           <p>
             California residents have the right to know what personal information
