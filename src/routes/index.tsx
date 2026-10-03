@@ -89,7 +89,14 @@ function useDyadData() {
       // getUser() validates the session with Supabase; a stale or foreign
       // token would otherwise be rejected by the function with 401.
       const { data: userData, error: userErr } = await supabase.auth.getUser();
-      if (userErr || !userData.user || cancelled) return;
+      if (userErr || !userData.user) {
+        // Saved session is no longer valid: clear it so the UI shows "Sign in".
+        if (userErr?.status === 401 || userErr?.status === 403) {
+          await supabase.auth.signOut({ scope: "local" });
+        }
+        return;
+      }
+      if (cancelled) return;
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       if (!token || cancelled) return;
