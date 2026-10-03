@@ -148,7 +148,8 @@ function Trends() {
     const days = rows.map((r) => r.day).sort();
     if (!days.length) return null;
     const fmt = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString([], { month: "short", day: "numeric" });
-    return days.length === 1 ? fmt(days[0]) : `${fmt(days[0])} – ${fmt(days[days.length - 1])}`;
+    const [first, last] = [days[0], days[days.length - 1]];
+    return first && last ? (first === last ? fmt(first) : `${fmt(first)} – ${fmt(last)}`) : null;
   };
 
   return (
