@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { GlassCard } from "@/components/dyad/glass-card";
 import { DyadThread } from "@/components/dyad/dyad-thread";
-import wordmark from "@/assets/dyad-wordmark.png.asset.json";
 import { ReadinessRing } from "@/components/dyad/readiness-ring";
 import { cn } from "@/lib/utils";
 import { DyadBrain, type BrainRegion } from "@/components/dyad/dyad-brain";
@@ -297,20 +296,24 @@ function Dashboard() {
 
 function Header() {
   return (
-    <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-      <div>
+    <header className="flex flex-col items-center gap-6">
+      <div className="self-end">
+        <AccountChip />
+      </div>
+      <div className="flex flex-col items-center text-center">
         <h1>
           <img
-            src={wordmark.url}
+            src="/logo-wordmark.png"
             alt="Dyad"
-            className="h-8 w-auto mix-blend-screen md:h-10"
+            width={900}
+            height={194}
+            className="dyad-logo-glow h-16 w-auto sm:h-24 md:h-28"
           />
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-4 text-sm text-muted-foreground">
           Shared vitals for a human and their AI agent.
         </p>
       </div>
-      <AccountChip />
     </header>
   );
 }
