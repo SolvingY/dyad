@@ -161,22 +161,34 @@ function useDyadData() {
     setOuraRows(data ?? []);
   }, []);
 
-  // The selected agent's rows; the built-in agent if none is picked or the
-  // picked one is gone.
+  // The agents still connected (built-in, an active API key, or an OAuth grant
+  // that hasn't been revoked) and the selected one's rows; the built-in agent
+  // if none is picked or the picked one is gone.
   const loadAgent = useCallback(async () => {
-    const { data: list, error: agentErr } = await supabase
-      .from("agents")
-      .select("id, name, source")
-      .order("created_at");
+    const [{ data: all, error: agentErr }, { data: keys }, { data: grants }] = await Promise.all([
+      supabase.from("agents").select("id, name, source, oauth_client_id").order("created_at"),
+      supabase.from("agent_keys").select("agent_id").is("revoked_at", null),
+      supabase.auth.oauth.listGrants(),
+    ]);
     if (agentErr) {
       setAgentError(agentErr.message);
       return;
     }
-    setAgents(list ?? []);
+    const liveKeys = new Set((keys ?? []).map((k) => k.agent_id));
+    const liveClients = grants ? new Set(grants.map((g) => g.client.id)) : null;
+    const list = (all ?? [])
+      .filter(
+        (a) =>
+          a.source === "builtin" ||
+          liveKeys.has(a.id) ||
+          (a.oauth_client_id !== null && (liveClients?.has(a.oauth_client_id) ?? true)),
+      )
+      .map(({ id, name, source }) => ({ id, name, source }));
+    setAgents(list);
     const agent =
-      list?.find((a) => a.id === selectedAgentId) ??
-      list?.find((a) => a.source === "builtin") ??
-      list?.[0];
+      list.find((a) => a.id === selectedAgentId) ??
+      list.find((a) => a.source === "builtin") ??
+      list[0];
     if (!agent) return;
     const { data, error } = await supabase
       .from("agent_daily")
@@ -353,7 +365,29 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
   return (
     <div className="dyad-ambient relative min-h-dvh">
       <main className="relative mx-auto flex w-full max-w-7xl flex-col px-4 pb-10 pt-4 md:px-6">
-        <Header isAdmin={isAdmin} />
+        <Header
+          isAdmin={isAdmin}
+          picker={
+            d.agents.length > 1 && (
+              <label className="glass-card flex min-w-0 items-center gap-2 rounded-full py-1.5 pl-4 pr-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                <span className="hidden sm:inline">Talking to</span>
+                <span className="size-1.5 shrink-0 rounded-full bg-agent shadow-[0_0_8px_var(--agent)]" />
+                <select
+                  value={d.selectedAgent?.id ?? ""}
+                  onChange={(e) => d.selectAgent(e.target.value)}
+                  aria-label="Agent"
+                  className="min-w-0 max-w-[11rem] truncate bg-transparent py-1 text-xs normal-case tracking-normal text-foreground outline-none"
+                >
+                  {d.agents.map((a) => (
+                    <option key={a.id} value={a.id} className="bg-background text-foreground">
+                      {a.source === "builtin" ? `${a.name} (built-in)` : a.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )
+          }
+        />
 
         {unread > 0 && (
           <button
@@ -488,7 +522,7 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
               onFocusCapture={() => unread > 0 && void markSeen()}
               className="flex h-[70dvh] min-h-0 flex-col lg:h-auto lg:flex-1"
             >
-              <DyadThread />
+              <DyadThread agent={d.selectedAgent} />
             </div>
           </section>
 
@@ -511,24 +545,6 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
                     : "No agent activity today"
               }
               stats={agentStats}
-              footer={
-                d.agents.length > 1 && (
-                  <label className="flex flex-col gap-1.5 border-t border-glass-line/60 pt-4 text-[11px] text-muted-foreground">
-                    Showing
-                    <select
-                      value={d.selectedAgent?.id ?? ""}
-                      onChange={(e) => d.selectAgent(e.target.value)}
-                      className="rounded-lg border border-glass-line/60 bg-background/60 px-2 py-1.5 text-xs text-foreground"
-                    >
-                      {d.agents.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.source === "builtin" ? `${a.name} (built-in)` : a.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )
-              }
             />
           </aside>
         </div>
@@ -559,7 +575,11 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
               caption={
                 align
                   ? `Readiness match · ${align.days} ${align.days === 1 ? "day" : "days"}${posture ? ` · ${posture.interruption.replace("_", " ").toLowerCase()}` : ""}`
-                  : "Needs both readiness scores"
+                  : !oura
+                    ? "No Oura readiness yet"
+                    : agentRows.length
+                      ? "No day yet with both readiness scores"
+                      : `No vitals from ${d.selectedAgent?.name ?? "your agent"} yet`
               }
             />
           </section>
@@ -584,12 +604,13 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
-function Header({ isAdmin }: { isAdmin: boolean }) {
+function Header({ isAdmin, picker }: { isAdmin: boolean; picker?: React.ReactNode }) {
   return (
     <header className="flex items-center justify-between gap-4">
-      <h1 className="flex">
+      <h1 className="flex shrink-0">
         <BrandLogo className="h-7 md:h-9" />
       </h1>
+      {picker}
       <AccountMenu isAdmin={isAdmin} />
     </header>
   );

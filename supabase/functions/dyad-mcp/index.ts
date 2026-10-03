@@ -9,7 +9,7 @@
 //
 // Tools:
 //   get_vitals       the human's oura_daily and this agent's agent_daily rows
-//   get_thread       recent Dyad thread messages, including the human's replies
+//   get_thread       this agent's conversation with the human
 //   post_message     post a message, check-in or hold into the thread
 //   log_call         report one of this agent's LLM calls to agent_events
 //   should_check_in  ask Dyad's built-in logic whether to check in right now
@@ -42,10 +42,11 @@ const headers = {
 
 const INSTRUCTIONS = `Dyad pairs a human with their AI agents. You are one of this human's agents.
 Use get_vitals to see how the human (Oura ring) and you (your own call telemetry) are doing, and
-get_thread to read the conversation. Check in with post_message kind "checkin": at most one short
-question, no medical claims or diagnoses. Dyad refuses a check-in if the human answered in the last
-2 hours or already got 3 check-ins today. Report every LLM call you make with log_call so your
-vitals stay accurate. You may make 20 tool calls per hour.`;
+get_thread to read your conversation with them: the human can message you directly in Dyad, so
+check it and answer with post_message kind "message". Check in with post_message kind "checkin":
+at most one short question, no medical claims or diagnoses. Dyad refuses a check-in if the human
+answered in the last 2 hours or already got 3 check-ins today. Report every LLM call you make with
+log_call so your vitals stay accurate. You may make 20 tool calls per hour.`;
 
 const TOOLS = [
   {
@@ -68,7 +69,7 @@ const TOOLS = [
   {
     name: "get_thread",
     description:
-      "Recent messages in the Dyad thread between the human and their agents, oldest first. Human replies may carry an energy rating from 1 to 5.",
+      "Your conversation with the human in Dyad, oldest first. The human can message you there directly; answer with post_message. Human messages may carry an energy rating from 1 to 5.",
     inputSchema: {
       type: "object",
       properties: {
@@ -179,18 +180,14 @@ async function callTool(
     if (!isInt(limit, 1) || (limit as number) > 50) throw new ToolError("limit must be 1-50");
     const { data } = await admin
       .from("thread_messages")
-      .select("created_at, role, kind, content, energy, agent_id, agents(name)")
+      .select("created_at, role, kind, content, energy")
       .eq("user_id", userId)
+      .eq("agent_id", agentId)
       .order("created_at", { ascending: false })
       .limit(limit as number);
     return (data ?? []).reverse().map((m) => ({
       created_at: m.created_at,
-      from:
-        m.role === "human"
-          ? "human"
-          : m.agent_id === agentId
-            ? "you"
-            : ((m.agents as { name?: string } | null)?.name ?? "another agent"),
+      from: m.role === "human" ? "human" : "you",
       kind: m.kind,
       content: m.content,
       energy: m.energy,
