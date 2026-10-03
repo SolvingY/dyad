@@ -70,7 +70,7 @@
 
   /* Base — near-black with a deep-navy tint */
   --background: oklch(0.159 0.016 266.6);
-  --foreground: oklch(0.975 0.006 255.5 outr);
+  --foreground: oklch(0.975 0.006 255.5);
   --card: oklch(0.233 0.035 266.6 / 0.35);
   --card-foreground: oklch(0.975 0.006 255.5);
   --popover: oklch(0.192 0.024 265.4 / 0.9);
