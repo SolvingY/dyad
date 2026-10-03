@@ -8,3 +8,9 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+## Dyad architecture rules
+- Dashboard data flows Supabase rows → `src/lib/dyad/vitals.ts` adapter (raw display vitals + separate normalized 0–1 visual state) → `DyadBrain`; the renderer never queries Supabase. Why: keeps raw values intact and the brain a pure view.
+- Posture comparison constants live only in `src/lib/dyad/posture-config.ts`; `getDyadOperatingPosture` stays a pure function. Why: no existing readiness bands, so one tunable home.
+- Agent readiness is computed only by `refresh_agent_daily` in SQL; the client may explain the limiting factor using mirrored weights but never recomputes readiness. Why: single source of truth.
+- The brain GLB is served as a Lovable asset with a local Draco decoder in `public/draco/`; data changes only materials/uniforms, never geometry. Why: no runtime third-party CDN, no anatomy deformation.
