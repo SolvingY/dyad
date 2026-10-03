@@ -5,17 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system definition.
+ * Dyad design system — futuristic & calm, premium health wearable.
  *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ * Near-black navy base, glass cards with luminous hairlines.
+ * Human = gold, Agent = teal. All colors in oklch.
  */
 
 @theme inline {
@@ -45,7 +38,6 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-ring-offset-background: var(--background);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -59,77 +51,95 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Dyad brand */
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --color-human: var(--human);
+  --color-agent: var(--agent);
+  --color-ember: var(--ember);
+  --color-iris: var(--iris);
+  --color-glacier: var(--glacier);
+  --color-moss: var(--moss);
+  --color-glass-line: var(--glass-line);
+  --color-glass-line-luminous: var(--glass-line-luminous);
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --radius: 0.75rem;
+
+  /* Base — near-black with a deep-navy tint */
+  --background: oklch(0.159 0.016 266.6);
+  --foreground: oklch(0.975 0.006 255.5 outr);
+  --card: oklch(0.233 0.035 266.6 / 0.35);
+  --card-foreground: oklch(0.975 0.006 255.5);
+  --popover: oklch(0.192 0.024 265.4 / 0.9);
+  --popover-foreground: oklch(0.975 0.006 255.5);
+  --primary: oklch(0.842 0.168 90.4);
+  --primary-foreground: oklch(0.159 0.016 266.6);
+  --secondary: oklch(0.233 0.035 266.6 / 0.6);
+  --secondary-foreground: oklch(0.975 0.006 255.5);
+  --muted: oklch(0.233 0.035 266.6 / 0.5);
+  --muted-foreground: oklch(0.975 0.006 255.5 / 0.55);
+  --accent: oklch(0.233 0.035 266.6 / 0.6);
+  --accent-foreground: oklch(0.975 0.006 255.5);
+  --destructive: oklch(0.629 0.178 23.7);
+  --destructive-foreground: oklch(0.975 0.006 255.5);
+  --border: oklch(0.975 0.006 255.5 / 0.1);
+  --input: oklch(0.975 0.006 255.5 / 0.12);
+  --ring: oklch(0.784 0.137 187.6);
+  --chart-1: oklch(0.842 0.168 90.4);
+  --chart-2: oklch(0.784 0.137 187.6);
+  --chart-3: oklch(0.679 0.153 51.3);
+  --chart-4: oklch(0.726 0.167 299.7);
+  --chart-5: oklch(0.805 0.108 242);
+  --sidebar: oklch(0.192 0.024 265.4);
+  --sidebar-foreground: oklch(0.975 0.006 255.5);
+  --sidebar-primary: oklch(0.842 0.168 90.4);
+  --sidebar-primary-foreground: oklch(0.159 0.016 266.6);
+  --sidebar-accent: oklch(0.233 0.035 266.6 / 0.6);
+  --sidebar-accent-foreground: oklch(0.975 0.006 255.5);
+  --sidebar-border: oklch(0.975 0.006 255.5 / 0.1);
+  --sidebar-ring: oklch(0.784 0.137 187.6);
+
+  /* Dyad palette */
+  --human: oklch(0.842 0.168 90.4);   /* gold #F5C518 */
+  --agent: oklch(0.784 0.137 187.6);  /* teal #00D4C8 */
+  --ember: oklch(0.679 0.153 51.3);   /* orange #E07830 */
+  --iris: oklch(0.726 0.167 299.7);   /* violet #B78BFF */
+  --glacier: oklch(0.805 0.108 242);  /* sky #7EC8FF */
+  --moss: oklch(0.728 0.139 149.9);   /* green #5FBF77 */
+  --warning: oklch(0.629 0.178 23.7); /* red #E05252 — warnings only */
+
+  /* Glass surfaces */
+  --glass-line: oklch(0.975 0.006 255.5 / 0.13);
+  --glass-line-luminous: oklch(0.975 0.006 255.5 / 0.28);
+  --glass-sheen: oklch(0.975 0.006 255.5 / 0.045);
+  --glow-human: oklch(0.842 0.168 90.4 / 0.18);
+  --glow-agent: oklch(0.784 0.137 187.6 / 0.2);
+  --glow-dyad: oklch(0.81 0.15 135 / 0.2);
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --background: oklch(0.159 0.016 266.6);
+  --foreground: oklch(0.975 0.006 255.5);
+  --card: oklch(0.233 0.035 266.6 / 0.35);
+  --card-foreground: oklch(0.975 0.006 255.5);
+  --popover: oklch(0.192 0.024 265.4 / 0.9);
+  --popover-foreground: oklch(0.975 0.006 255.5);
+  --primary: oklch(0.842 0.168 90.4);
+  --primary-foreground: oklch(0.159 0.016 266.6);
+  --secondary: oklch(0.233 0.035 266.6 / 0.6);
+  --secondary-foreground: oklch(0.975 0.006 255.5);
+  --muted: oklch(0.233 0.035 266.6 / 0.5);
+  --muted-foreground: oklch(0.975 0.006 255.5 / 0.55);
+  --accent: oklch(0.233 0.035 266.6 / 0.6);
+  --accent-foreground: oklch(0.975 0.006 255.5);
+  --destructive: oklch(0.629 0.178 23.7);
+  --destructive-foreground: oklch(0.975 0.006 255.5);
+  --border: oklch(0.975 0.006 255.5 / 0.1);
+  --input: oklch(0.975 0.006 255.5 / 0.12);
+  --ring: oklch(0.784 0.137 187.6);
 }
 
 @layer base {
@@ -140,5 +150,68 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* ---------- Dyad utilities ---------- */
+
+@utility glass-card {
+  position: relative;
+  background:
+    linear-gradient(165deg, var(--glass-sheen), transparent 45%),
+    oklch(0.233 0.035 266.6 / 0.28);
+  border: 1px solid var(--glass-line);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow:
+    inset 0 1px 0 0 oklch(0.975 0.006 255.5 / 0.06),
+    0 24px 60px -32px oklch(0 0 0 / 0.9);
+  transition:
+    border-color 0.5s ease,
+    box-shadow 0.5s ease;
+
+  &:hover {
+    border-color: var(--glass-line-luminous);
+    box-shadow:
+      inset 0 1px 0 0 oklch(0.975 0.006 255.5 / 0.08),
+      0 24px 60px -32px oklch(0 0 0 / 0.9),
+      0 0 44px -10px var(--glow, var(--glow-dyad));
+  }
+}
+
+/* Ambient background wash: gold rising on the left, teal settling on the right */
+@utility dyad-ambient {
+  background:
+    radial-gradient(55rem 36rem at 12% -5%, oklch(0.842 0.168 90.4 / 0.055), transparent 62%),
+    radial-gradient(55rem 36rem at 88% 105%, oklch(0.784 0.137 187.6 / 0.07), transparent 62%);
+}
+
+/* Vertical hairline that blends gold into teal */
+@utility dyad-gradient-line {
+  background: linear-gradient(180deg, transparent, var(--human) 22%, var(--agent) 78%, transparent);
+}
+
+/* Slow pulse for readiness rings */
+@keyframes ring-pulse {
+  0%,
+  100% {
+    opacity: 0.22;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+@utility ring-glow {
+  animation: ring-pulse 5.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring-glow {
+    animation: none;
+    opacity: 0.35;
   }
 }
