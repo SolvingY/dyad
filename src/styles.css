@@ -209,6 +209,56 @@
   animation: ring-pulse 5.5s ease-in-out infinite;
 }
 
+/* Legal pages: calm, readable long-form text */
+.legal-prose {
+  & h2 {
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: oklch(0.975 0.006 255.5 / 0.8);
+  }
+  & h3 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: oklch(0.975 0.006 255.5 / 0.65);
+  }
+  & p {
+    margin-bottom: 1rem;
+    font-size: 0.925rem;
+    font-weight: 300;
+    line-height: 1.75;
+    color: oklch(0.975 0.006 255.5 / 0.6);
+  }
+  & ul {
+    margin: 0 0 1rem 0;
+    padding-left: 1.25rem;
+    list-style: disc;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  & li {
+    font-size: 0.925rem;
+    font-weight: 300;
+    line-height: 1.65;
+    color: oklch(0.975 0.006 255.5 / 0.6);
+    &::marker {
+      color: oklch(0.975 0.006 255.5 / 0.3);
+    }
+  }
+  & strong {
+    font-weight: 400;
+    color: oklch(0.975 0.006 255.5 / 0.8);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ring-glow {
     animation: none;
