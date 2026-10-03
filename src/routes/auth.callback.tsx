@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { takeReturnTo } from "@/lib/return-to";
+import { BrandLogo } from "@/components/dyad/brand-logo";
 
 export const Route = createFileRoute("/auth/callback")({
   head: () => ({
@@ -76,7 +77,9 @@ function AuthCallback() {
   return (
     <div className="dyad-ambient flex min-h-screen items-center justify-center px-6">
       <div className="text-center">
-        <p className="font-display text-xl font-light uppercase tracking-[0.45em] text-foreground">Dyad</p>
+        <div className="flex justify-center">
+          <BrandLogo className="h-12" />
+        </div>
         {error ? (
           <>
             <p className="mt-6 text-sm text-destructive">{error}</p>

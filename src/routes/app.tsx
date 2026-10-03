@@ -8,6 +8,7 @@ import { ReadinessRing } from "@/components/dyad/readiness-ring";
 import { cn } from "@/lib/utils";
 import { DyadBrain, type BrainRegion } from "@/components/dyad/dyad-brain";
 import { RegionPanel } from "@/components/dyad/brain-panel";
+import { BrandLogo } from "@/components/dyad/brand-logo";
 import {
   getDyadOperatingPosture,
   toAgentVisual,
@@ -397,14 +398,8 @@ function DashboardInner() {
 function Header() {
   return (
     <header className="flex items-center justify-between gap-4">
-      <h1>
-        <img
-          src="/logo-wordmark.png"
-          alt="Dyad"
-          width={900}
-          height={194}
-          className="dyad-logo-glow h-7 w-auto md:h-9"
-        />
+      <h1 className="flex">
+        <BrandLogo className="h-7 md:h-9" />
       </h1>
       <div className="flex items-center gap-4">
         <nav className="hidden gap-3 text-[10px] uppercase tracking-[0.25em] text-muted-foreground sm:flex">
