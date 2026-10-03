@@ -265,7 +265,6 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         if ((obj as THREEType.Mesh).isMesh && HIDDEN.some((h) => meta(obj, "bx_cat").includes(h))) drop.push(obj);
       });
       drop.forEach((o) => o.removeFromParent());
-      console.log("DBG drop", drop.length, getComputedStyle(canvas).mixBlendMode);
 
       const meshes: THREEType.Mesh[] = [];
       model.traverse((obj) => {
@@ -294,7 +293,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
       const sphere = new THREE.Box3().setFromObject(root).getBoundingSphere(new THREE.Sphere());
       controls.target.copy(sphere.center);
       const fov = THREE.MathUtils.degToRad(camera.fov);
-      const fitDist = (sphere.radius / Math.sin(fov / 2)) * 1.02;
+      const fitDist = (sphere.radius / Math.sin(fov / 2)) * 0.82;
       camera.position.set(0, 0.22, fitDist);
       camera.lookAt(controls.target);
       controls.update();
