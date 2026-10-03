@@ -20,7 +20,7 @@ export const Route = createFileRoute("/api/public/password-reset")({
         }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const redirectTo = "https://dyad-human-agent-sync.lovable.app/reset-password";
+        const redirectTo = "https://dyadai.com/reset-password";
         const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, { redirectTo });
         if (!error) return Response.json({ ok: true, delivered: "email" });
 
