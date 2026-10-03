@@ -41,6 +41,7 @@ export type AgentVitals = {
   baselineLatencyMs: number | null;
   latencyVariabilityMs: number | null;
   errorRateDeviation: number | null; // fraction
+  errorRate: number | null; // fraction
   activityScore: number | null;
   callCount: number | null;
   totalTokens: number | null;
@@ -86,6 +87,7 @@ export function toAgentVitals(row: AgentRow | null | undefined): AgentVitals | n
     baselineLatencyMs: num(row.baseline_latency_ms),
     latencyVariabilityMs: num(row.latency_variability_ms),
     errorRateDeviation: num(row.error_rate_deviation),
+    errorRate: num(row.error_rate),
     activityScore: num(row.activity_score),
     callCount: num(row.call_count),
     totalTokens: num(row.total_tokens),
@@ -286,7 +288,7 @@ export function agentLimitingFactor(v: AgentVitals | null): string | null {
   const losses: [string, number][] = [
     ["freshness", w.freshness * (100 - (v.freshness ?? 0))],
     ["correction rate", w.correction * 100 * (v.correctionRate ?? 0)],
-    ["error rate", w.error * 100 * Math.min(1, (v.errorRateDeviation ?? 0) + 0)],
+    ["error rate", w.error * 100 * Math.min(1, v.errorRate ?? 0)],
     ["context fill", w.contextFill * 100 * Math.min(1, v.contextFill ?? 0)],
     ["retry rate", w.retry * 100 * Math.min(1, v.retryRate ?? 0)],
   ];
