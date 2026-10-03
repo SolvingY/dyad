@@ -298,6 +298,7 @@ export function DyadThread() {
                 {checkinState === "running" ? "Checking in…" : "Check in now"}
               </button>
             )}
+            <McpConnectHint />
           </div>
         )}
         {messages?.map((m) =>

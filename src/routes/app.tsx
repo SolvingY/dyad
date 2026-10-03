@@ -588,53 +588,57 @@ function Header({ isAdmin }: { isAdmin: boolean }) {
       <h1 className="flex">
         <BrandLogo className="h-7 md:h-9" />
       </h1>
-      <div className="flex items-center gap-4">
-        <nav className="hidden gap-3 text-[10px] uppercase tracking-[0.25em] text-muted-foreground sm:flex">
-          {isAdmin && <Link to="/admin" className="text-agent hover:text-foreground">Approvals</Link>}
-          <a href="/terms" className="hover:text-foreground">Terms</a>
-          <a href="/privacy" className="hover:text-foreground">Privacy</a>
-        </nav>
-        <AccountChip />
-      </div>
+      <AccountMenu isAdmin={isAdmin} />
     </header>
   );
 }
 
-function AccountChip() {
+function AccountMenu({ isAdmin }: { isAdmin: boolean }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const chip =
-    "glass-card inline-flex items-center gap-2.5 rounded-full px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground";
+  const [open, setOpen] = useState(false);
+  const item =
+    "block rounded-xl px-4 py-3 text-sm uppercase tracking-[0.2em] text-foreground transition-colors hover:bg-glass-line/40";
 
-  if (loading) return <div className={chip}>…</div>;
+  if (loading) return <div className="glass-card rounded-full px-4 py-2 text-[11px] text-foreground">…</div>;
   if (!user)
     return (
-      <Link to="/auth" className={cn(chip, "hover:text-foreground")}>
-        <span className="size-1.5 rounded-full bg-glass-line-luminous" />
+      <Link to="/auth" className="glass-card rounded-full px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-foreground">
         Sign in
       </Link>
     );
   return (
-    <div className={chip}>
-      <span className="size-1.5 rounded-full bg-agent shadow-[0_0_8px_var(--agent)]" />
-      <span className="hidden max-w-[12rem] truncate normal-case tracking-normal sm:inline">{user.email}</span>
-      <a href="/dyad-walkthrough.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
-        Watch the walkthrough
-      </a>
-      <Link to="/agent" className="hover:text-foreground">
-        Agent
-      </Link>
-      <button
-        type="button"
-        className="hover:text-foreground"
-        onClick={async () => {
-          await supabase.auth.signOut();
-          navigate({ to: "/", replace: true });
-        }}
-      >
-        Sign out
-      </button>
-    </div>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <button type="button" aria-label="Open menu" className="glass-card inline-flex size-11 items-center justify-center rounded-full text-foreground">
+          <Menu className="size-5" />
+        </button>
+      </SheetTrigger>
+      <SheetContent side="right" className="glass-card flex w-80 flex-col gap-6 border-l border-glass-line bg-background/95 text-foreground">
+        <SheetHeader>
+          <SheetTitle className="text-left text-foreground">Menu</SheetTitle>
+          <p className="truncate text-left text-xs text-foreground">{user.email}</p>
+        </SheetHeader>
+        <nav className="flex flex-col gap-1" onClick={() => setOpen(false)}>
+          <Link to="/agent" className={cn(item, "text-agent")}>Connect Your Agent</Link>
+          <a href="/dyad-walkthrough.html" target="_blank" rel="noopener noreferrer" className={item}>Walkthrough</a>
+          {isAdmin && <Link to="/admin" className={item}>Approvals</Link>}
+          <a href="/terms" className={item}>Terms</a>
+          <a href="/privacy" className={item}>Privacy</a>
+        </nav>
+        <button
+          type="button"
+          className={cn(item, "mt-auto text-left")}
+          onClick={async () => {
+            setOpen(false);
+            await supabase.auth.signOut();
+            navigate({ to: "/", replace: true });
+          }}
+        >
+          Sign out
+        </button>
+      </SheetContent>
+    </Sheet>
   );
 }
 
