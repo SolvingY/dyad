@@ -41,7 +41,11 @@ function HistoryPage() {
   const getAccess = useServerFn(getMyAccess);
   const [access, setAccess] = useState<{ status: "pending" | "approved" | "denied"; isAdmin: boolean } | null>(null);
   const [accessError, setAccessError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
+  useEffect(() => {
+    if (!loading && !user) navigate({ to: "/auth", replace: true });
+  }, [loading, user, navigate]);
   useEffect(() => {
     if (!user) return;
     getAccess()
