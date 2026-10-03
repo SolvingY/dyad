@@ -1,7 +1,7 @@
 // Wraps every Claude call the agent makes, and logs it to agent_events.
 //
-// POST { agent_id, task_id?, messages, include_human_context? } with the
-// signed-in user's session. The caller must own the agent.
+// POST { agent_id, task_id?, messages, system?, include_human_context? } with
+// the signed-in user's session. The caller must own the agent.
 //
 // One 'llm_call' event is written per call, success or failure. With
 // include_human_context, the user's latest oura_daily row (today or yesterday,
@@ -40,11 +40,15 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => null);
   const { agent_id, task_id = null, messages, include_human_context } = body ?? {};
+  let system: string | undefined = body?.system;
   if (typeof agent_id !== "string" || !Array.isArray(messages) || messages.length === 0) {
     return json({ error: "bad_request", detail: "agent_id and messages are required" }, 400);
   }
   if (task_id !== null && typeof task_id !== "string") {
     return json({ error: "bad_request", detail: "task_id must be a string" }, 400);
+  }
+  if (system !== undefined && typeof system !== "string") {
+    return json({ error: "bad_request", detail: "system must be a string" }, 400);
   }
 
   // A malformed uuid makes this query error; treat that as "not found" too.
@@ -62,7 +66,6 @@ Deno.serve(async (req) => {
     return json({ error: "server_misconfigured" }, 500);
   }
 
-  let system: string | undefined;
   if (include_human_context === true) {
     const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
     const { data: day } = await admin
@@ -76,7 +79,8 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
     if (day) {
-      system = `Latest data about the human you work with, from their Oura ring:\n${JSON.stringify(day)}`;
+      const ouraContext = `Latest data about the human you work with, from their Oura ring:\n${JSON.stringify(day)}`;
+      system = system ? `${system}\n\n${ouraContext}` : ouraContext;
       const { error } = await admin
         .from("agent_events")
         .insert({ agent_id, event_type: "context_refresh", task_id });
