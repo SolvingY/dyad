@@ -34,7 +34,7 @@ type Recognition = {
 function getRecognitionCtor(): (new () => Recognition) | null {
   if (typeof window === "undefined") return null;
   const w = window as unknown as Record<string, unknown>;
-  return (w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null) as (new () => Recognition) | null;
+  return (w["SpeechRecognition"] ?? w["webkitSpeechRecognition"] ?? null) as (new () => Recognition) | null;
 }
 
 export function DyadThread() {
@@ -164,7 +164,7 @@ export function DyadThread() {
     baseTextRef.current = text ? `${text.trim()} ` : "";
     r.onresult = (e) => {
       let said = "";
-      for (let i = 0; i < e.results.length; i++) said += e.results[i][0].transcript;
+      for (let i = 0; i < e.results.length; i++) said += e.results[i]?.[0]?.transcript ?? "";
       setText(baseTextRef.current + said);
     };
     r.onend = () => setListening(false);
@@ -178,7 +178,7 @@ export function DyadThread() {
   const lastCheckinId = (() => {
     if (!messages) return null;
     for (let i = messages.length - 1; i >= 0; i--) {
-      const m = messages[i];
+      const m = messages[i]!;
       if (m.role === "human") return null;
       if (m.kind === "checkin") return m.id;
     }
