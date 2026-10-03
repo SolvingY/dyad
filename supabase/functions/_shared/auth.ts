@@ -30,5 +30,14 @@ export async function getCallerId(req: Request, admin: SupabaseClient): Promise<
     console.warn("getCallerId: token rejected:", error?.message ?? "no user");
     return null;
   }
+  const { data: approval, error: approvalError } = await admin
+    .from("account_approvals")
+    .select("status")
+    .eq("user_id", data.user.id)
+    .maybeSingle();
+  if (approvalError || approval?.status !== "approved") {
+    console.warn("getCallerId: account is not approved");
+    return null;
+  }
   return data.user.id;
 }

@@ -354,6 +354,79 @@
   }
 }
 
+@keyframes signal-scan {
+  0% { transform: translateY(-12vh); }
+  70%, 100% { transform: translateY(112vh); }
+}
+
+@keyframes signal-jitter {
+  0%, 92%, 100% { transform: translate(0); filter: none; }
+  93% { transform: translate(-2px, 1px); filter: drop-shadow(2px 0 var(--agent)); }
+  94% { transform: translate(2px, -1px); filter: drop-shadow(-2px 0 var(--human)); }
+  95% { transform: translate(0); filter: none; }
+}
+
+@keyframes signal-dash {
+  to { background-position: 48px 0; }
+}
+
+@keyframes signal-flicker {
+  0%, 88%, 92%, 100% { opacity: 1; }
+  89% { opacity: 0.45; }
+  90% { opacity: 1; }
+  91% { opacity: 0.68; }
+}
+
+@utility glitch-shell {
+  &::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    pointer-events: none;
+    background: repeating-linear-gradient(180deg, transparent 0 3px, oklch(0.975 0.006 255.5 / 0.022) 4px);
+  }
+}
+
+@utility glitch-overlay {
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, color-mix(in oklab, var(--human) 3%, transparent), transparent 32%, color-mix(in oklab, var(--agent) 3%, transparent));
+}
+
+.glitch-scan {
+  position: absolute;
+  inset-inline: 0;
+  height: 11vh;
+  background: linear-gradient(180deg, transparent, oklch(0.975 0.006 255.5 / 0.055), transparent);
+  animation: signal-scan 8s linear infinite;
+}
+
+.glitch-title,
+.glitch-heading {
+  animation: signal-jitter 9s steps(1) infinite;
+}
+
+.glitch-kicker {
+  animation: signal-flicker 5.5s steps(1) infinite;
+}
+
+.signal-rail-line {
+  height: 1px;
+  flex: 1;
+  background: repeating-linear-gradient(90deg, var(--human) 0 7px, transparent 7px 13px, var(--agent) 13px 20px, transparent 20px 26px);
+  background-size: 48px 1px;
+  animation: signal-dash 1.8s linear infinite;
+}
+
+.landing-liquid-section .glass-card {
+  animation-name: liquid-in, signal-flicker;
+  animation-duration: 0.7s, 7s;
+  animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1), steps(1);
+  animation-fill-mode: both;
+  animation-iteration-count: 1, infinite;
+}
+
 .landing-liquid-section .glass-card {
   background:
     radial-gradient(
@@ -432,6 +505,17 @@ a.liquid-press:active,
   }
   .liquid-ripple {
     display: none;
+  }
+  .glitch-shell::after,
+  .glitch-overlay,
+  .signal-rail {
+    display: none;
+  }
+  .glitch-title,
+  .glitch-heading,
+  .glitch-kicker,
+  .landing-liquid-section .glass-card {
+    animation: none !important;
   }
   button:not(:disabled):active,
   a.liquid-press:active,

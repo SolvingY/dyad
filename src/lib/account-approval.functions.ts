@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database } from "@/integrations/supabase/types";
 
 const decisionSchema = z.object({
   userId: z.string().uuid(),
@@ -8,22 +10,14 @@ const decisionSchema = z.object({
 });
 
 async function requireAdmin(context: {
-  supabase: Parameters<typeof checkAdmin>[0];
+  supabase: SupabaseClient<Database>;
   userId: string;
 }) {
   if (!(await checkAdmin(context.supabase, context.userId))) throw new Error("Forbidden");
 }
 
 async function checkAdmin(
-  supabase: {
-    from: (table: "user_roles") => {
-      select: (columns: string) => {
-        eq: (column: string, value: string) => {
-          eq: (column: string, value: string) => { maybeSingle: () => Promise<{ data: unknown; error: { message: string } | null }> };
-        };
-      };
-    };
-  },
+  supabase: SupabaseClient<Database>,
   userId: string,
 ) {
   const { data, error } = await supabase

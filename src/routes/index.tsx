@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Pause } from "lucide-react";
+import { Activity, Pause, Radio, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { DyadBrain, type BrainRegion } from "@/components/dyad/dyad-brain";
 import { toCenterVisual, type DyadVisualState } from "@/lib/dyad/vitals";
@@ -90,7 +90,8 @@ function Landing() {
   const scale = 1 - progress * 0.55;
 
   return (
-    <div className="dyad-ambient relative min-h-dvh bg-background text-foreground">
+    <div className="dyad-ambient glitch-shell relative min-h-dvh bg-background text-foreground">
+      {rich && <GlitchOverlay />}
       <div className="relative">
         {/* Brain stage: sticky through the hero and "Two sets of vitals" on desktop */}
         <div className="relative h-dvh overflow-hidden bg-background lg:sticky lg:top-0">
@@ -143,7 +144,10 @@ function Landing() {
               transition: shown && progress === 0 ? "opacity 1.4s ease-out 3s" : "none",
             }}
           >
-            <h1 className="max-w-3xl font-display text-4xl font-extralight tracking-tight text-foreground md:text-6xl">
+            <p className="glitch-kicker mb-4 flex items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-agent">
+              <Radio className="size-3" /> Human signal / agent signal
+            </p>
+            <h1 className="glitch-title max-w-3xl font-display text-4xl font-extralight tracking-tight text-foreground md:text-6xl" data-text="Shared vitals for you and your agent.">
               Shared vitals for you and your agent.
             </h1>
             <p className="mt-5 max-w-2xl text-base font-light leading-relaxed text-foreground md:text-lg">
@@ -157,6 +161,7 @@ function Landing() {
         {/* SECTION 2 */}
         <section className="landing-liquid-section pointer-events-none relative flex min-h-dvh flex-col justify-center px-6 py-20 md:px-10">
           <SectionTitle>Two sets of vitals</SectionTitle>
+          <SignalRail left="HUMAN / LIVE" right="AGENT / LIVE" />
           <div className="mx-auto mt-10 grid w-full max-w-6xl grid-cols-2 gap-6 lg:grid-cols-[1fr_minmax(16rem,1fr)_1fr]">
             <ul className="flex flex-col gap-6 lg:text-right">
               {PAIRS.map(([h], index) => (
@@ -192,6 +197,7 @@ function Landing() {
       {/* SECTION 3 */}
       <section className="landing-liquid-section relative bg-background px-6 py-28 md:px-10">
         <SectionTitle>The space between</SectionTitle>
+        <SignalRail left="INPUT" right="RESPONSE" />
         <div className="mx-auto mt-10 flex max-w-xl flex-col gap-4">
           <div className="glass-card liquid-in max-w-[90%] self-start rounded-2xl rounded-bl-sm border-agent/30 px-4 py-2.5">
             <p className="mb-1 text-[10px] uppercase tracking-[0.2em] text-agent">Check-in</p>
@@ -213,6 +219,7 @@ function Landing() {
       {/* SECTION 4 */}
       <section className="landing-liquid-section relative bg-background px-6 py-28 md:px-10">
         <SectionTitle>How it works</SectionTitle>
+        <SignalRail left="01 CONNECT" right="03 SYNC" />
         <ol className="mx-auto mt-10 flex max-w-xl flex-col gap-6">
           {[
             "Connect your Oura ring.",
@@ -261,9 +268,29 @@ function SignupCta({ className }: { className?: string }) {
 
 function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h2 className="text-center font-display text-3xl font-extralight tracking-tight text-foreground md:text-5xl">
+    <h2 className="glitch-heading text-center font-display text-3xl font-extralight tracking-tight text-foreground md:text-5xl">
       {children}
     </h2>
+  );
+}
+
+function SignalRail({ left, right }: { left: string; right: string }) {
+  return (
+    <div aria-hidden="true" className="signal-rail mx-auto mt-5 flex w-full max-w-6xl items-center gap-3 text-[9px] uppercase tracking-[0.26em] text-foreground">
+      <Activity className="size-3 text-human" />
+      <span>{left}</span>
+      <span className="signal-rail-line" />
+      <span>{right}</span>
+      <Zap className="size-3 text-agent" />
+    </div>
+  );
+}
+
+function GlitchOverlay() {
+  return (
+    <div aria-hidden="true" className="glitch-overlay pointer-events-none fixed inset-0 z-40">
+      <span className="glitch-scan" />
+    </div>
   );
 }
 

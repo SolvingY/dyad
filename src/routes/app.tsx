@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { DyadBrain, type BrainRegion } from "@/components/dyad/dyad-brain";
 import { RegionPanel } from "@/components/dyad/brain-panel";
 import { BrandLogo } from "@/components/dyad/brand-logo";
+import { useServerFn } from "@tanstack/react-start";
+import { getMyAccess } from "@/lib/account-approval.functions";
 import {
   getDyadOperatingPosture,
   toAgentVisual,
@@ -158,14 +160,42 @@ const pct = (v: number | null | undefined) => (v == null ? null : `${Math.round(
 function Dashboard() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const getAccess = useServerFn(getMyAccess);
+  const [access, setAccess] = useState<{ status: "pending" | "approved" | "denied"; isAdmin: boolean } | null>(null);
+  const [accessError, setAccessError] = useState<string | null>(null);
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", replace: true });
   }, [loading, user, navigate]);
-  if (loading || !user) return <div className="dyad-ambient h-dvh" />;
-  return <DashboardInner />;
+  useEffect(() => {
+    if (!user) return;
+    getAccess()
+      .then(setAccess)
+      .catch((error) => setAccessError(error instanceof Error ? error.message : "Could not verify account access."));
+  }, [user, getAccess]);
+  if (loading || !user || (!access && !accessError)) return <div className="dyad-ambient h-dvh" />;
+  if (accessError || access?.status !== "approved") {
+    return <ApprovalState status={access?.status ?? "pending"} error={accessError} />;
+  }
+  return <DashboardInner isAdmin={access.isAdmin} />;
 }
 
-function DashboardInner() {
+function ApprovalState({ status, error }: { status: "pending" | "approved" | "denied"; error: string | null }) {
+  return (
+    <div className="dyad-ambient flex min-h-dvh items-center justify-center px-6">
+      <GlassCard tone="dyad" className="w-full max-w-lg p-8 text-center">
+        <BrandLogo className="mx-auto h-10" />
+        <h1 className="mt-8 font-display text-3xl font-extralight text-foreground">
+          {error ? "Access check unavailable" : status === "denied" ? "Access denied" : "Approval pending"}
+        </h1>
+        <p className="mt-4 text-sm leading-relaxed text-foreground">
+          {error ?? (status === "denied" ? "Your Dyad account is not approved. Contact the administrator if you believe this is a mistake." : "Your account is ready and waiting for administrator approval.")}
+        </p>
+      </GlassCard>
+    </div>
+  );
+}
+
+function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
   const d = useDyadData();
   const { ouraRows, agentRows } = d;
   const oura = ouraRows[0] ?? null;
@@ -207,7 +237,7 @@ function DashboardInner() {
   return (
     <div className="dyad-ambient relative min-h-dvh">
       <main className="relative mx-auto flex w-full max-w-7xl flex-col px-4 pb-10 pt-4 md:px-6">
-        <Header />
+        <Header isAdmin={isAdmin} />
 
         <div className="mt-3 flex flex-col gap-5 lg:mt-6 lg:grid lg:h-[calc(100dvh-6rem)] lg:min-h-0 lg:grid-cols-[17rem_1fr_17rem]">
           <aside
@@ -395,7 +425,7 @@ function DashboardInner() {
   );
 }
 
-function Header() {
+function Header({ isAdmin }: { isAdmin: boolean }) {
   return (
     <header className="flex items-center justify-between gap-4">
       <h1 className="flex">
@@ -403,6 +433,7 @@ function Header() {
       </h1>
       <div className="flex items-center gap-4">
         <nav className="hidden gap-3 text-[10px] uppercase tracking-[0.25em] text-muted-foreground sm:flex">
+          {isAdmin && <Link to="/admin" className="text-agent hover:text-foreground">Approvals</Link>}
           <a href="/terms" className="hover:text-foreground">Terms</a>
           <a href="/privacy" className="hover:text-foreground">Privacy</a>
         </nav>

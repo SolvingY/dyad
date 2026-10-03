@@ -75,7 +75,8 @@ function AuthPage() {
           options: { emailRedirectTo: authRedirectUrl() },
         });
         if (error) throw error;
-        if (!data.session) setNotice("Check your email to confirm your account.");
+        if (!data.session) setNotice("Check your email to confirm your account. Access begins after administrator approval.");
+        else setNotice("Account created. An administrator must approve access before you can enter Dyad.");
       } else if (mode === "magic") {
         const { error } = await supabase.auth.signInWithOtp({
           email,
