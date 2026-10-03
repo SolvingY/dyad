@@ -95,7 +95,7 @@ function Landing() {
         <div className="relative h-dvh overflow-hidden bg-background lg:sticky lg:top-0">
           {rich && <Particles />}
           <div
-            className="absolute inset-0 flex items-center justify-center mix-blend-screen"
+            className="absolute inset-0 flex items-center justify-center"
             style={{
               opacity: shown ? 1 : 0,
               transition: "opacity 3s ease-out",

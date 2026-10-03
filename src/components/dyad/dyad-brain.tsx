@@ -500,7 +500,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         const hPulse = h ? 1 + 0.03 * Math.sin(t * Math.PI * 2 * h.pulseHz) : 1;
         const hThroughput = h ? 0.9 + 0.2 * h.throughput : 1;
         mats.human.emissiveIntensity =
-          (0.16 + 0.5 * smooth.h) * hFlicker * hPulse * hThroughput * (humanSel ? 1.7 : 1);
+          (0.22 + 0.55 * smooth.h) * hFlicker * hPulse * hThroughput * (humanSel ? 1.7 : 1);
         mats.human.opacity = (0.62 + 0.16 * smooth.h) * (agentSel ? 0.3 : 1) * (humanSel ? 1.2 : 1);
         tmpColor.copy(gold).lerp(ember, (h?.warmth ?? 0) * 0.35).multiplyScalar(0.5);
         mats.human.emissive.copy(tmpColor);
@@ -600,7 +600,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         halo.geometry.dispose();
         coreMat.dispose();
         haloMat.dispose();
-        composer.dispose();
+        renderer.dispose();
         renderer.dispose();
         canvas.remove();
       });
