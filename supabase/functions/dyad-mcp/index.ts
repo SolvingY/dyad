@@ -11,11 +11,17 @@
 //   post_message     post a message, check-in or hold into the thread
 //   log_call         report one of this agent's LLM calls to agent_events
 //   should_check_in  ask Dyad's built-in logic whether to check in right now
+//
+// Each key may make RATE_LIMIT tool calls per RATE_WINDOW_SECONDS; the
+// handshake and tool listing don't count.
 
 import { ACT_AS_USER_HEADER, adminClient } from "../_shared/auth.ts";
 import { hashAgentKey } from "../_shared/agent-key.ts";
 import { chicagoParts } from "../_shared/chicago.ts";
 import { holdReason } from "../_shared/checkin-rules.ts";
+
+const RATE_LIMIT = 20;
+const RATE_WINDOW_SECONDS = 3600;
 
 const SUPPORTED_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
@@ -32,7 +38,7 @@ Use get_vitals to see how the human (Oura ring) and you (your own call telemetry
 get_thread to read the conversation. Check in with post_message kind "checkin": at most one short
 question, no medical claims or diagnoses. Dyad refuses a check-in if the human answered in the last
 2 hours or already got 3 check-ins today. Report every LLM call you make with log_call so your
-vitals stay accurate.`;
+vitals stay accurate. You may make 20 tool calls per hour.`;
 
 const TOOLS = [
   {
@@ -122,7 +128,7 @@ const TOOLS = [
   },
 ];
 
-type Caller = { agentId: string; userId: string };
+type Caller = { keyId: string; agentId: string; userId: string };
 type Admin = ReturnType<typeof adminClient>;
 
 class ToolError extends Error {}
@@ -319,6 +325,22 @@ async function handle(admin: Admin, caller: Caller, msg: RpcMessage) {
       const name = msg.params?.name;
       const args = (msg.params?.arguments ?? {}) as Record<string, unknown>;
       if (typeof name !== "string") return fail(-32602, "params.name is required");
+      const { data: waitSeconds, error: limitErr } = await admin.rpc("consume_agent_key_call", {
+        p_key_id: caller.keyId,
+        p_limit: RATE_LIMIT,
+        p_window_seconds: RATE_WINDOW_SECONDS,
+      });
+      if (limitErr) {
+        console.error(`dyad-mcp: rate limiter failed: ${limitErr.message}`);
+        return reply({
+          content: [{ type: "text", text: "Dyad is unavailable right now." }],
+          isError: true,
+        });
+      }
+      if (waitSeconds > 0) {
+        const text = `Rate limited: ${RATE_LIMIT} tool calls per hour. Retry in ${waitSeconds} seconds.`;
+        return reply({ content: [{ type: "text", text }], isError: true });
+      }
       try {
         const result = await callTool(admin, caller, name, args);
         return reply({ content: [{ type: "text", text: JSON.stringify(result) }] });
@@ -356,7 +378,7 @@ Deno.serve(async (req) => {
     .from("agent_keys")
     .update({ last_used_at: new Date().toISOString() })
     .eq("id", found.id);
-  const caller = { agentId: found.agent_id, userId: found.user_id };
+  const caller = { keyId: found.id, agentId: found.agent_id, userId: found.user_id };
 
   const body = await req.json().catch(() => undefined);
   if (body === undefined) {
