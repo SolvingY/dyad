@@ -1,1 +1,6 @@
 project_id = "lkrowosefofrksfheeqh"
+[functions.oura-auth-start]
+verify_jwt = false
+
+[functions.oura-callback]
+verify_jwt = false
