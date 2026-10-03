@@ -19,7 +19,7 @@ function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-glass-line/60 py-2 last:border-0">
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className={missing ? "text-xs text-muted-foreground/50" : "font-display text-sm font-light text-foreground/90"}>
+      <dd className={missing ? "text-xs text-muted-foreground" : "font-display text-sm font-light text-foreground"}>
         {value}
       </dd>
     </div>
@@ -31,9 +31,9 @@ function Title({ children, sub, dot }: { children: ReactNode; sub?: string | und
     <div className="mb-3 flex items-center justify-between gap-3">
       <div className="flex items-center gap-2.5">
         <span className={`size-1.5 rounded-full ${dot}`} />
-        <h3 className="text-[11px] font-medium uppercase tracking-[0.35em] text-foreground/70">{children}</h3>
+        <h3 className="text-[11px] font-medium uppercase tracking-[0.35em] text-foreground">{children}</h3>
       </div>
-      {sub && <span className="text-[10px] tracking-[0.15em] text-muted-foreground/60">{sub}</span>}
+      {sub && <span className="text-[10px] tracking-[0.15em] text-muted-foreground">{sub}</span>}
     </div>
   );
 }
@@ -68,7 +68,7 @@ export function HumanPanel({ v }: { v: HumanVitals | null }) {
         </dl>
       )}
       {v && (
-        <p className="mt-3 text-[10px] text-muted-foreground/60">
+        <p className="mt-3 text-[10px] text-muted-foreground">
           Synced {new Date(v.updatedAt).toLocaleString()}
         </p>
       )}
@@ -99,7 +99,7 @@ export function AgentPanel({ v }: { v: AgentVitals | null }) {
         </dl>
       )}
       {v && (
-        <p className="mt-3 text-[10px] text-muted-foreground/60">
+        <p className="mt-3 text-[10px] text-muted-foreground">
           {v.lastContextRefresh
             ? `Knowledge of you last refreshed ${new Date(v.lastContextRefresh).toLocaleString()}`
             : "No context refresh logged yet"}
@@ -145,23 +145,23 @@ export function DyadPanel({
         </p>
       ) : (
         <div className="mt-4 space-y-4">
-          <p className="text-sm font-light leading-relaxed text-foreground/85">{posture.headline}</p>
+          <p className="text-sm font-light leading-relaxed text-foreground">{posture.headline}</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.3em] text-human/80">Human</p>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-human">Human</p>
               <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground">
                 {posture.human.map((s) => <li key={s}>{s}</li>)}
               </ul>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.3em] text-agent/80">Agent</p>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-agent">Agent</p>
               <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground">
                 {posture.agent.map((s) => <li key={s}>{s}</li>)}
               </ul>
             </div>
           </div>
           {limit && (
-            <p className="text-[11px] text-muted-foreground/70">Agent readiness is being limited by {limit}.</p>
+            <p className="text-[11px] text-muted-foreground">Agent readiness is being limited by {limit}.</p>
           )}
         </div>
       )}

@@ -22,11 +22,11 @@ export const Route = createFileRoute("/auth/")({
 type Mode = "signin" | "signup" | "magic" | "forgot";
 
 const inputCls =
-  "w-full rounded-lg border border-glass-line bg-background/40 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-colors focus:border-glass-line-luminous";
+  "w-full rounded-lg border border-glass-line bg-background/40 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-glass-line-luminous";
 const primaryBtn =
-  "w-full rounded-lg bg-gradient-to-r from-human to-agent px-4 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50";
+  "w-full rounded-lg bg-gradient-to-r from-human to-agent px-4 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed";
 const ghostBtn =
-  "flex w-full items-center justify-center gap-2 rounded-lg border border-glass-line px-4 py-3 text-sm text-foreground/85 transition-colors hover:border-glass-line-luminous disabled:opacity-50";
+  "flex w-full items-center justify-center gap-2 rounded-lg border border-glass-line px-4 py-3 text-sm text-foreground transition-colors hover:border-glass-line-luminous disabled:cursor-not-allowed";
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -104,7 +104,7 @@ function AuthPage() {
       <div className="w-full max-w-md">
         <Link
           to="/"
-          className="block text-center font-display text-2xl font-light uppercase tracking-[0.45em] text-foreground/90"
+          className="block text-center font-display text-2xl font-light uppercase tracking-[0.45em] text-foreground"
         >
           Dyad
         </Link>
@@ -124,7 +124,7 @@ function AuthPage() {
             </button>
           </div>
 
-          <div className="my-7 flex items-center gap-3 text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60">
+          <div className="my-7 flex items-center gap-3 text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
             <span className="h-px flex-1 bg-glass-line" />
             or
             <span className="h-px flex-1 bg-glass-line" />
@@ -143,7 +143,7 @@ function AuthPage() {
                   }}
                   className={cn(
                     "flex-1 rounded-md px-2 py-2 text-[11px] uppercase tracking-[0.15em] transition-colors",
-                    mode === t.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground/80",
+                    mode === t.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {t.label}

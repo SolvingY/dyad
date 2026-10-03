@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import ReactMarkdown from "react-markdown";
-import { Mic, Send, Square } from "lucide-react";
+import { Mic, Pause, Send, Square } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
@@ -217,7 +217,7 @@ export function DyadThread() {
                 type="button"
                 onClick={triggerCheckin}
                 disabled={checkinState === "running"}
-                className="glass-card rounded-full px-5 py-2 text-[11px] uppercase tracking-[0.2em] text-agent disabled:opacity-60"
+                className="glass-card rounded-full px-5 py-2 text-[11px] uppercase tracking-[0.2em] text-agent disabled:cursor-not-allowed"
               >
                 {checkinState === "running" ? "Checking in…" : "Check in now"}
               </button>
@@ -226,7 +226,8 @@ export function DyadThread() {
         )}
         {messages?.map((m) =>
           m.kind === "hold" ? (
-            <p key={m.id} className="text-center text-[11px] text-muted-foreground/70">
+            <p key={m.id} className="flex items-center justify-center gap-1.5 text-center text-[11px] text-foreground">
+              <Pause aria-hidden="true" className="size-3 shrink-0" />
               Agent held off · {m.content}
             </p>
           ) : m.role === "human" ? (
@@ -234,7 +235,7 @@ export function DyadThread() {
               key={m.id}
               className="max-w-[85%] self-end rounded-2xl rounded-br-sm border border-human/30 bg-human/10 px-4 py-2.5"
             >
-              <p className="whitespace-pre-wrap text-sm text-foreground/90">{m.content}</p>
+              <p className="whitespace-pre-wrap text-sm text-foreground">{m.content}</p>
             </div>
           ) : (
             <div
@@ -244,7 +245,7 @@ export function DyadThread() {
               {m.kind === "checkin" && (
                 <p className="mb-1 text-[10px] uppercase tracking-[0.2em] text-agent">Check-in</p>
               )}
-              <div className="ask-dyad-md text-sm leading-relaxed text-foreground/85">
+              <div className="ask-dyad-md text-sm leading-relaxed text-foreground">
                 <ReactMarkdown>{m.content}</ReactMarkdown>
               </div>
               {m.id === lastCheckinId && (
@@ -257,7 +258,7 @@ export function DyadThread() {
                       disabled={busy}
                       onClick={() => tapEnergy(n)}
                       aria-label={`Energy ${n} of 5`}
-                      className="glass-card size-8 rounded-full text-xs text-foreground/80 hover:text-agent disabled:opacity-50"
+                      className="glass-card size-8 rounded-full text-xs text-foreground hover:text-agent disabled:cursor-not-allowed"
                     >
                       {n}
                     </button>
@@ -276,7 +277,7 @@ export function DyadThread() {
             </div>
           ),
         )}
-        {busy && <p className="text-[11px] text-agent/80">Agent is thinking…</p>}
+        {busy && <p className="text-[11px] text-agent">Agent is thinking…</p>}
       </div>
 
       <form onSubmit={send} className="glass-card flex items-center gap-3 rounded-3xl p-2.5">
@@ -290,7 +291,7 @@ export function DyadThread() {
               "flex size-14 shrink-0 items-center justify-center rounded-full border transition-colors",
               listening
                 ? "border-human bg-human/20 text-human shadow-[0_0_18px_var(--human)]"
-                : "border-glass-line-luminous text-foreground/70 hover:text-human",
+                : "border-glass-line-luminous text-foreground hover:text-human",
             )}
           >
             {listening ? <Square className="size-5" /> : <Mic className="size-6" />}
@@ -308,7 +309,7 @@ export function DyadThread() {
           type="submit"
           disabled={busy || !text.trim()}
           aria-label="Send"
-          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-agent/20 text-agent transition-opacity disabled:opacity-40"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-agent/20 text-agent transition-opacity disabled:cursor-not-allowed"
         >
           <Send className="size-4" />
         </button>
@@ -320,7 +321,7 @@ export function DyadThread() {
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-foreground/60">
+    <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-foreground">
       <p>{children}</p>
     </div>
   );

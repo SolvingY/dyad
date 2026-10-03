@@ -38,7 +38,7 @@ function ResetPassword() {
   return (
     <div className="dyad-ambient flex min-h-screen items-center justify-center px-6">
       <GlassCard tone="dyad" className="w-full max-w-md px-7 py-8">
-        <h1 className="text-[11px] uppercase tracking-[0.35em] text-foreground/70">Set a new password</h1>
+        <h1 className="text-[11px] uppercase tracking-[0.35em] text-foreground">Set a new password</h1>
         <form onSubmit={submit} className="mt-6 flex flex-col gap-3">
           <input
             type="password"
@@ -53,7 +53,7 @@ function ResetPassword() {
           <button
             type="submit"
             disabled={busy}
-            className="mt-2 w-full rounded-lg bg-gradient-to-r from-human to-agent px-4 py-3 text-sm font-medium text-background disabled:opacity-50"
+            className="mt-2 w-full rounded-lg bg-gradient-to-r from-human to-agent px-4 py-3 text-sm font-medium text-background disabled:cursor-not-allowed"
           >
             {busy ? "Saving…" : "Update password"}
           </button>

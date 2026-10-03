@@ -25,16 +25,16 @@ function PrivacyPage() {
     <div className="dyad-ambient relative min-h-screen overflow-hidden">
       <main className="relative mx-auto w-full max-w-3xl px-6 pb-24 pt-10 md:pt-14">
         <header className="flex flex-col gap-2">
-          <h1 className="font-display text-2xl font-light uppercase tracking-[0.45em] text-foreground/90">
+          <h1 className="font-display text-2xl font-light uppercase tracking-[0.45em] text-foreground">
             Dyad
           </h1>
-          <p className="text-[11px] uppercase tracking-[0.3em] text-muted-foreground/60">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
             Privacy Policy
           </p>
         </header>
 
         <article className="legal-prose mt-12">
-          <p className="text-xs text-muted-foreground/70">
+          <p className="text-xs text-muted-foreground">
             Last updated: [DATE]
           </p>
 
@@ -197,16 +197,16 @@ function PrivacyPage() {
           </p>
         </article>
 
-        <footer className="mt-16 flex items-center justify-center gap-4 text-[11px] uppercase tracking-[0.25em] text-muted-foreground/60">
-          <a href="/terms" className="transition-colors hover:text-foreground/80">
+        <footer className="mt-16 flex items-center justify-center gap-4 text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+          <a href="/terms" className="transition-colors hover:text-foreground">
             Terms
           </a>
           <span aria-hidden="true" className="size-1 rounded-full bg-glass-line-luminous" />
-          <a href="/privacy" className="transition-colors hover:text-foreground/80">
+          <a href="/privacy" className="transition-colors hover:text-foreground">
             Privacy
           </a>
           <span aria-hidden="true" className="size-1 rounded-full bg-glass-line-luminous" />
-          <a href="/" className="transition-colors hover:text-foreground/80">
+          <a href="/" className="transition-colors hover:text-foreground">
             Dashboard
           </a>
         </footer>
