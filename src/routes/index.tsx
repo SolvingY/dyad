@@ -155,20 +155,28 @@ function Landing() {
         </section>
 
         {/* SECTION 2 */}
-        <section className="pointer-events-none relative flex min-h-dvh flex-col justify-center px-6 py-20 md:px-10">
+        <section className="landing-liquid-section pointer-events-none relative flex min-h-dvh flex-col justify-center px-6 py-20 md:px-10">
           <SectionTitle>Two sets of vitals</SectionTitle>
           <div className="mx-auto mt-10 grid w-full max-w-6xl grid-cols-2 gap-6 lg:grid-cols-[1fr_minmax(16rem,1fr)_1fr]">
             <ul className="flex flex-col gap-6 lg:text-right">
-              {PAIRS.map(([h]) => (
-                <li key={h} className="border-b border-human/40 pb-3 text-lg font-light text-human">
+              {PAIRS.map(([h], index) => (
+                <li
+                  key={h}
+                  className="glass-card liquid-in pointer-events-auto rounded-xl border-human/40 px-4 py-3 text-lg font-light text-human"
+                  style={{ animationDelay: `${index * 70}ms` }}
+                >
                   {h}
                 </li>
               ))}
             </ul>
             <div className="hidden lg:block" aria-hidden="true" />
             <ul className="flex flex-col gap-6">
-              {PAIRS.map(([, a, note]) => (
-                <li key={a} className="border-b border-agent/40 pb-3 text-lg font-light text-agent">
+              {PAIRS.map(([, a, note], index) => (
+                <li
+                  key={a}
+                  className="glass-card liquid-in pointer-events-auto rounded-xl border-agent/40 px-4 py-3 text-lg font-light text-agent"
+                  style={{ animationDelay: `${index * 70}ms` }}
+                >
                   {a}
                   {note && <span className="block text-sm text-foreground">{note}</span>}
                 </li>
@@ -182,10 +190,10 @@ function Landing() {
       </div>
 
       {/* SECTION 3 */}
-      <section className="relative bg-background px-6 py-28 md:px-10">
+      <section className="landing-liquid-section relative bg-background px-6 py-28 md:px-10">
         <SectionTitle>The space between</SectionTitle>
         <div className="mx-auto mt-10 flex max-w-xl flex-col gap-4">
-          <div className="max-w-[90%] self-start rounded-2xl rounded-bl-sm border border-agent/30 bg-agent/10 px-4 py-2.5">
+          <div className="glass-card liquid-in max-w-[90%] self-start rounded-2xl rounded-bl-sm border-agent/30 px-4 py-2.5">
             <p className="mb-1 text-[10px] uppercase tracking-[0.2em] text-agent">Check-in</p>
             <p className="text-sm leading-relaxed text-foreground">
               Your readiness is 74 and I'm working from yesterday's picture of you. One question: how's your
@@ -203,7 +211,7 @@ function Landing() {
       </section>
 
       {/* SECTION 4 */}
-      <section className="relative bg-background px-6 py-28 md:px-10">
+      <section className="landing-liquid-section relative bg-background px-6 py-28 md:px-10">
         <SectionTitle>How it works</SectionTitle>
         <ol className="mx-auto mt-10 flex max-w-xl flex-col gap-6">
           {[
@@ -211,7 +219,11 @@ function Landing() {
             "Your agent starts measuring itself.",
             "It checks in through the day, and you answer by voice or text.",
           ].map((step, i) => (
-            <li key={step} className="flex items-baseline gap-5 border-b border-glass-line pb-4">
+            <li
+              key={step}
+              className="glass-card liquid-in flex items-baseline gap-5 rounded-xl px-5 py-4"
+              style={{ animationDelay: `${i * 90}ms` }}
+            >
               <span className="font-display text-3xl font-extralight text-agent">{i + 1}</span>
               <span className="text-lg font-light text-foreground">{step}</span>
             </li>
@@ -220,7 +232,7 @@ function Landing() {
         <SignupCta className="mt-12" />
       </section>
 
-      <footer className="relative flex flex-wrap items-center justify-center gap-4 border-t border-glass-line bg-background px-6 py-8 text-[11px] uppercase tracking-[0.2em] text-foreground">
+      <footer className="landing-liquid-footer relative flex flex-wrap items-center justify-center gap-4 border-t border-glass-line px-6 py-8 text-[11px] uppercase tracking-[0.2em] text-foreground">
         <Link to="/terms" className="hover:text-human">Terms</Link>
         <Link to="/privacy" className="hover:text-agent">Privacy</Link>
         <Link to="/agents" className="hover:text-agent">For agents</Link>
@@ -236,11 +248,11 @@ function SignupCta({ className }: { className?: string }) {
       <Link
         to="/auth"
         search={{ mode: "signup" }}
-        className="rounded-full bg-gradient-to-r from-human to-agent px-8 py-3 text-sm font-medium text-background shadow-[0_0_28px_var(--glow-dyad)] transition-transform hover:scale-[1.03]"
+        className="liquid-press landing-liquid-cta rounded-full bg-gradient-to-r from-human to-agent px-8 py-3 text-sm font-medium text-background shadow-[0_0_28px_var(--glow-dyad)] transition-transform hover:scale-[1.03]"
       >
         Sign up
       </Link>
-      <Link to="/auth" className="text-xs text-foreground underline-offset-4 hover:underline">
+      <Link to="/auth" className="liquid-press rounded-full px-4 py-2 text-xs text-foreground underline-offset-4 hover:underline">
         Sign in
       </Link>
     </div>
