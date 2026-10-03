@@ -205,7 +205,7 @@ export type Database = {
           agent_id: string
           agent_readiness?: number | null
           created_at?: string
-          decision: string
+          decision?: string
           human_readiness?: number | null
           id?: string
           message?: string | null
