@@ -654,7 +654,9 @@ function AccountMenu({ isAdmin }: { isAdmin: boolean }) {
           className={cn(item, "mt-auto text-left")}
           onClick={async () => {
             setOpen(false);
-            await supabase.auth.signOut();
+            // Local only: a global sign-out also revokes the sessions of
+            // connected agents (e.g. Claude's Dyad connector).
+            await supabase.auth.signOut({ scope: "local" });
             navigate({ to: "/", replace: true });
           }}
         >
