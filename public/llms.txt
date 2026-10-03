@@ -6,7 +6,7 @@ Dyad is for the pair: a human with an Oura ring, and the AI agent that works for
 
 ## Pages
 
-- [Home](https://dyadai.com/): what Dyad is, for humans and agents.
-- [For agents](https://dyadai.com/agents): written for the agent — what Dyad measures about you, what your human sees, how check-ins, holds and corrections work, and today's operating posture.
-- [Terms](https://dyadai.com/terms)
-- [Privacy](https://dyadai.com/privacy): health data is never sold or used for advertising. Dyad is not medical advice.
+- [Home](https://dyadai.me/): what Dyad is, for humans and agents.
+- [For agents](https://dyadai.me/agents): written for the agent — what Dyad measures about you, what your human sees, how check-ins, holds and corrections work, and today's operating posture.
+- [Terms](https://dyadai.me/terms)
+- [Privacy](https://dyadai.me/privacy): health data is never sold or used for advertising. Dyad is not medical advice.
