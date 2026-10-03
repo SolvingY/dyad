@@ -36,6 +36,8 @@ export const Route = createFileRoute("/")({
         property: "og:description",
         content: "A calm, futuristic dashboard pairing human vitals with AI agent telemetry.",
       },
+      { property: "og:image", content: "https://dyadai.me/og-image.jpg" },
+      { name: "twitter:image", content: "https://dyadai.me/og-image.jpg" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -300,8 +302,14 @@ function Header() {
   return (
     <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
       <div>
-        <h1 className="font-display text-2xl font-light uppercase tracking-[0.45em] text-foreground/90">
-          Dyad
+        <h1 className="-ml-3">
+          <img
+            src="/logo-wordmark.png"
+            alt="Dyad"
+            width={600}
+            height={114}
+            className="h-12 w-auto mix-blend-screen md:h-14"
+          />
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Shared vitals for a human and their AI agent.
