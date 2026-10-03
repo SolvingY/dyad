@@ -643,6 +643,7 @@ function AccountMenu({ isAdmin }: { isAdmin: boolean }) {
           <p className="truncate text-left text-xs text-foreground">{user.email}</p>
         </SheetHeader>
         <nav className="flex flex-col gap-1" onClick={() => setOpen(false)}>
+          <Link to="/history" className={item}>Trends</Link>
           <Link to="/agent" className={cn(item, "text-agent")}>Connect Your Agent</Link>
           <a href="/dyad-walkthrough.html" target="_blank" rel="noopener noreferrer" className={item}>Walkthrough</a>
           {isAdmin && <Link to="/admin" className={item}>Approvals</Link>}
