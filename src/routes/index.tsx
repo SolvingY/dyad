@@ -133,9 +133,14 @@ function Landing() {
         <section className="pointer-events-none relative -mt-[100dvh] flex h-dvh flex-col">
           <header className="landing-liquid-nav pointer-events-auto fixed inset-x-0 top-0 z-50 flex items-center justify-between px-6 py-4 md:px-10">
             <BrandLogo className="h-8 md:h-10" />
-            <Link to="/auth" className="text-[11px] uppercase tracking-[0.25em] text-foreground hover:text-agent">
-              Sign in
-            </Link>
+            <nav className="flex items-center gap-5">
+              <a href="#watch" className="text-[11px] uppercase tracking-[0.25em] text-foreground hover:text-agent">
+                Watch the film
+              </a>
+              <Link to="/auth" className="text-[11px] uppercase tracking-[0.25em] text-foreground hover:text-agent">
+                Sign in
+              </Link>
+            </nav>
           </header>
           <div
             className="mt-auto flex flex-col items-center px-6 pb-14 text-center"
@@ -158,7 +163,37 @@ function Landing() {
           </div>
         </section>
 
-        {/* SECTION 2 */}
+        {/* SECTION 2 — See how it works (the film) */}
+        <section id="watch" className="relative scroll-mt-20 bg-background px-6 py-24 md:px-10">
+          <SectionTitle>See how it works</SectionTitle>
+          <div className="mx-auto mt-10 w-full max-w-[1100px]">
+            <div className="relative w-full overflow-hidden rounded-2xl border border-glass-line bg-black/40 shadow-[0_0_60px_rgba(0,0,0,0.5)]" style={{ aspectRatio: "16 / 9" }}>
+              <video
+                className="absolute inset-0 h-full w-full"
+                src="/dyad-explainer.mp4"
+                poster="/dyad-explainer-poster.jpg"
+                controls
+                preload="metadata"
+                playsInline
+              />
+            </div>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-light text-foreground">
+                Two minutes on how you and your agent check on each other.
+              </p>
+              <a
+                href="/dyad-walkthrough.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-agent underline-offset-4 hover:underline"
+              >
+                Open the interactive walkthrough
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION 3 */}
         <section className="landing-liquid-section pointer-events-none relative flex min-h-dvh flex-col justify-center px-6 py-20 md:px-10">
           <SectionTitle>Two sets of vitals</SectionTitle>
           <SignalRail left="HUMAN / LIVE" right="AGENT / LIVE" />
