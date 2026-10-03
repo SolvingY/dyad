@@ -30,12 +30,12 @@ export const Route = createFileRoute("/")({
 // Neutral brain state: no data, so the brain shows its resting look.
 const VISUAL: DyadVisualState = { human: null, agent: null, center: toCenterVisual(null, null) };
 
-const PAIRS: [string, string, string?][] = [
-  ["Readiness", "Readiness"],
-  ["Sleep", "Freshness", "how current its knowledge of you is"],
-  ["Resting heart rate", "Baseline response time"],
-  ["Temperature deviation", "Error-rate deviation"],
-  ["Steps", "Calls made"],
+const PAIRS: [string, string, string, string][] = [
+  ["Readiness", "your body's overall capacity today", "Readiness", "how ready it is to act on your behalf"],
+  ["Sleep", "how well you slept last night", "Freshness", "how current its knowledge of you is"],
+  ["Resting heart rate", "your pulse at rest", "Baseline response time", "how fast it normally answers"],
+  ["Temperature deviation", "how far your temperature drifts from your baseline", "Error-rate deviation", "how far its errors stray from its own norm"],
+  ["Steps", "movement so far today", "Calls made", "how much work it did today"],
 ];
 
 /** Full motion only on wide screens without reduced-motion. */
@@ -199,26 +199,27 @@ function Landing() {
           <SignalRail left="HUMAN / LIVE" right="AGENT / LIVE" />
           <div className="mx-auto mt-10 grid w-full max-w-6xl grid-cols-2 gap-6 lg:grid-cols-[1fr_minmax(16rem,1fr)_1fr]">
             <ul className="flex flex-col gap-6 lg:text-right">
-              {PAIRS.map(([h], index) => (
+              {PAIRS.map(([h, hNote], index) => (
                 <li
                   key={h}
                   className="glass-card liquid-in pointer-events-auto rounded-xl border-human/40 px-4 py-3 text-lg font-light text-human"
                   style={{ animationDelay: `${index * 70}ms` }}
                 >
                   {h}
+                  <span className="block text-sm font-light text-foreground">{hNote}</span>
                 </li>
               ))}
             </ul>
             <div className="hidden lg:block" aria-hidden="true" />
             <ul className="flex flex-col gap-6">
-              {PAIRS.map(([, a, note], index) => (
+              {PAIRS.map(([, , a, aNote], index) => (
                 <li
                   key={a}
                   className="glass-card liquid-in pointer-events-auto rounded-xl border-agent/40 px-4 py-3 text-lg font-light text-agent"
                   style={{ animationDelay: `${index * 70}ms` }}
                 >
                   {a}
-                  {note && <span className="block text-sm text-foreground">{note}</span>}
+                  <span className="block text-sm font-light text-foreground">{aNote}</span>
                 </li>
               ))}
             </ul>
@@ -258,8 +259,9 @@ function Landing() {
         <ol className="mx-auto mt-10 flex max-w-xl flex-col gap-6">
           {[
             "Connect your Oura ring.",
-            "Your agent starts measuring itself.",
-            "It checks in through the day, and you answer by voice or text.",
+            "Connect your own agent — Claude, Cursor, or your own code — over MCP.",
+            "It measures its own work and checks in through the day.",
+            "You answer by voice or text, and both sets of vitals stay live.",
           ].map((step, i) => (
             <li
               key={step}
@@ -271,6 +273,12 @@ function Landing() {
             </li>
           ))}
         </ol>
+        <Link
+          to="/agents"
+          className="mx-auto mt-6 block w-fit text-sm text-agent underline-offset-4 hover:underline"
+        >
+          Bringing your own agent? See how to connect it over MCP
+        </Link>
         <SignupCta className="mt-12" />
       </section>
 
