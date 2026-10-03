@@ -461,6 +461,9 @@ function AccountChip() {
     <div className={chip}>
       <span className="size-1.5 rounded-full bg-agent shadow-[0_0_8px_var(--agent)]" />
       <span className="hidden max-w-[12rem] truncate normal-case tracking-normal sm:inline">{user.email}</span>
+      <a href="/dyad-walkthrough.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
+        Watch the walkthrough
+      </a>
       <Link to="/agent" className="hover:text-foreground">
         Agent
       </Link>
