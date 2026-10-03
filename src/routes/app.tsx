@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { DyadBrain, type BrainRegion } from "@/components/dyad/dyad-brain";
 import { RegionPanel } from "@/components/dyad/brain-panel";
 import { BrandLogo } from "@/components/dyad/brand-logo";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Menu } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getMyAccess } from "@/lib/account-approval.functions";
 import {
