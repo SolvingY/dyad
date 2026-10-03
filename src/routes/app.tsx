@@ -40,20 +40,27 @@ type SyncState = "idle" | "syncing" | "ok" | "failed";
 function useDyadData() {
   const { user } = useAuth();
   const [oura, setOura] = useState<OuraRow | null>(null);
+  const [ouraError, setOuraError] = useState<string | null>(null);
   const [agentDay, setAgentDay] = useState<AgentRow | null>(null);
   const [ouraConnected, setOuraConnected] = useState<boolean | null>(null);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [syncState, setSyncState] = useState<SyncState>("idle");
 
   const loadOura = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("oura_daily")
       .select("*")
-      .order("updated_at", { ascending: false })
-      .limit(14);
-    const rows = data ?? [];
-    setLastSync(rows[0]?.updated_at ?? null);
-    setOura(rows.find((r) => r.day === localDate()) ?? null);
+      .order("day", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      setOuraError(error.message);
+      setOura(null);
+      return;
+    }
+    setOuraError(null);
+    setLastSync(data?.updated_at ?? null);
+    setOura(data ?? null);
   }, []);
 
   const loadAgent = useCallback(async () => {
@@ -68,7 +75,7 @@ function useDyadData() {
       .from("agent_daily")
       .select("*")
       .eq("agent_id", agent.id)
-      .eq("day", new Date().toISOString().slice(0, 10))
+      .eq("day", localDate())
       .maybeSingle();
     setAgentDay(data ?? null);
   }, []);
@@ -112,7 +119,7 @@ function useDyadData() {
     void sync();
   }, [user?.id, loadOura, loadAgent, sync]);
 
-  return { user, oura, agentDay, ouraConnected, lastSync, syncState, sync };
+  return { user, oura, ouraError, agentDay, ouraConnected, lastSync, syncState, sync };
 }
 
 async function connectOura() {
@@ -169,7 +176,15 @@ function DashboardInner() {
               tone="human"
               title="You"
               value={oura?.readiness_score}
-              caption={d.user ? (oura ? "Readiness · today" : "No Oura data today") : "Sign in"}
+              caption={
+                d.user
+                  ? d.ouraError
+                    ? `Oura error: ${d.ouraError}`
+                    : oura
+                      ? `Readiness · ${new Date(`${oura.day}T12:00:00`).toLocaleDateString([], { month: "short", day: "numeric" })}`
+                      : "No Oura data yet"
+                  : "Sign in"
+              }
               stats={youStats}
               footer={
                 d.user && (
