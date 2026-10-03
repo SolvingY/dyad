@@ -75,7 +75,7 @@ function AuthCallback() {
   return (
     <div className="dyad-ambient flex min-h-screen items-center justify-center px-6">
       <div className="text-center">
-        <p className="font-display text-xl font-light uppercase tracking-[0.45em] text-foreground/90">Dyad</p>
+        <p className="font-display text-xl font-light uppercase tracking-[0.45em] text-foreground">Dyad</p>
         {error ? (
           <>
             <p className="mt-6 text-sm text-destructive">{error}</p>

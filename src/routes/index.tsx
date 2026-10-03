@@ -194,7 +194,7 @@ function Dashboard() {
                         type="button"
                         onClick={() => void d.sync()}
                         disabled={d.syncState === "syncing"}
-                        className="self-start text-human hover:underline disabled:opacity-50"
+                        className="self-start text-human hover:underline disabled:cursor-not-allowed"
                       >
                         {d.syncState === "syncing" ? "Syncing…" : "Retry sync"}
                       </button>
@@ -237,9 +237,9 @@ function Header() {
         />
       </h1>
       <div className="flex items-center gap-4">
-        <nav className="hidden gap-3 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60 sm:flex">
-          <a href="/terms" className="hover:text-foreground/80">Terms</a>
-          <a href="/privacy" className="hover:text-foreground/80">Privacy</a>
+        <nav className="hidden gap-3 text-[10px] uppercase tracking-[0.25em] text-muted-foreground sm:flex">
+          <a href="/terms" className="hover:text-foreground">Terms</a>
+          <a href="/privacy" className="hover:text-foreground">Privacy</a>
         </nav>
         <AccountChip />
       </div>
@@ -312,7 +312,7 @@ function SideCard({
       </div>
       <div className="mt-5 flex flex-col items-center">
         <ReadinessRing tone={tone} value={value} />
-        <p className="mt-4 font-display text-5xl font-extralight tracking-tight text-foreground/85">
+        <p className="mt-4 font-display text-5xl font-extralight tracking-tight text-foreground">
           {value ?? "—"}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">{caption}</p>
@@ -321,7 +321,7 @@ function SideCard({
         {stats.map((s) => (
           <div key={s.label}>
             <dt className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{s.label}</dt>
-            <dd className="mt-1 font-display text-xl font-extralight text-foreground/85">{s.value ?? "—"}</dd>
+            <dd className="mt-1 font-display text-xl font-extralight text-foreground">{s.value ?? "—"}</dd>
           </div>
         ))}
       </dl>
@@ -351,7 +351,7 @@ function MiniRing({
         >
           {label}
         </p>
-        <p className="font-display text-2xl font-extralight text-foreground/85">{value ?? "—"}</p>
+        <p className="font-display text-2xl font-extralight text-foreground">{value ?? "—"}</p>
       </div>
     </GlassCard>
   );

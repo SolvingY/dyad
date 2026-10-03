@@ -80,7 +80,7 @@
   --secondary: oklch(0.233 0.035 266.6 / 0.6);
   --secondary-foreground: oklch(0.975 0.006 255.5);
   --muted: oklch(0.233 0.035 266.6 / 0.5);
-  --muted-foreground: oklch(0.975 0.006 255.5 / 0.55);
+  --muted-foreground: oklch(0.975 0.006 255.5);
   --accent: oklch(0.233 0.035 266.6 / 0.6);
   --accent-foreground: oklch(0.975 0.006 255.5);
   --destructive: oklch(0.629 0.178 23.7);
@@ -132,7 +132,7 @@
   --secondary: oklch(0.233 0.035 266.6 / 0.6);
   --secondary-foreground: oklch(0.975 0.006 255.5);
   --muted: oklch(0.233 0.035 266.6 / 0.5);
-  --muted-foreground: oklch(0.975 0.006 255.5 / 0.55);
+  --muted-foreground: oklch(0.975 0.006 255.5);
   --accent: oklch(0.233 0.035 266.6 / 0.6);
   --accent-foreground: oklch(0.975 0.006 255.5);
   --destructive: oklch(0.629 0.178 23.7);
@@ -218,7 +218,7 @@
     font-weight: 400;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: oklch(0.975 0.006 255.5 / 0.8);
+    color: oklch(0.975 0.006 255.5);
   }
   & h3 {
     margin-top: 1.5rem;
@@ -227,14 +227,14 @@
     font-weight: 400;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: oklch(0.975 0.006 255.5 / 0.65);
+    color: oklch(0.975 0.006 255.5);
   }
   & p {
     margin-bottom: 1rem;
     font-size: 0.925rem;
     font-weight: 300;
     line-height: 1.75;
-    color: oklch(0.975 0.006 255.5 / 0.6);
+    color: oklch(0.975 0.006 255.5);
   }
   & ul {
     margin: 0 0 1rem 0;
@@ -248,14 +248,14 @@
     font-size: 0.925rem;
     font-weight: 300;
     line-height: 1.65;
-    color: oklch(0.975 0.006 255.5 / 0.6);
+    color: oklch(0.975 0.006 255.5);
     &::marker {
-      color: oklch(0.975 0.006 255.5 / 0.3);
+      color: oklch(0.975 0.006 255.5);
     }
   }
   & strong {
     font-weight: 400;
-    color: oklch(0.975 0.006 255.5 / 0.8);
+    color: oklch(0.975 0.006 255.5);
   }
 }
 
@@ -273,7 +273,7 @@
 .ask-dyad-md li + li { margin-top: 0.25em; }
 .ask-dyad-md strong { color: var(--foreground); font-weight: 500; }
 .ask-dyad-md h1, .ask-dyad-md h2, .ask-dyad-md h3 { color: var(--foreground); font-weight: 500; font-size: 0.95em; letter-spacing: 0.02em; }
-.ask-dyad-md code { font-size: 0.9em; opacity: 0.9; }
+.ask-dyad-md code { font-size: 0.9em; }
 
 @utility dyad-logo-glow {
   filter: drop-shadow(0 0 6px color-mix(in oklab, var(--color-foreground) 55%, transparent))

@@ -530,7 +530,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
       <div ref={wrapRef} className="absolute inset-0" aria-label="Dyad brain: gold human hemisphere, teal agent hemisphere" role="img" />
       {status === "loading" && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
-          <span className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60">
+          <span className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
             Loading brain…
           </span>
         </div>

@@ -89,7 +89,7 @@ export function ReadinessRing({ tone, className, size = 132, value }: ReadinessR
         )}
       </svg>
       <span
-        className="pointer-events-none absolute font-display text-3xl font-extralight text-foreground/45"
+        className="pointer-events-none absolute font-display text-3xl font-extralight text-foreground"
         aria-hidden="true"
       >
         {value == null && "—"}
