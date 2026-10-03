@@ -186,6 +186,59 @@ export type Database = {
         }
         Relationships: []
       }
+      checkins: {
+        Row: {
+          agent_id: string
+          agent_readiness: number | null
+          created_at: string
+          decision: string
+          human_readiness: number | null
+          id: string
+          message: string | null
+          reason: string | null
+          responded_at: string | null
+          response_energy: number | null
+          response_note: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          agent_readiness?: number | null
+          created_at?: string
+          decision: string
+          human_readiness?: number | null
+          id?: string
+          message?: string | null
+          reason?: string | null
+          responded_at?: string | null
+          response_energy?: number | null
+          response_note?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          agent_readiness?: number | null
+          created_at?: string
+          decision?: string
+          human_readiness?: number | null
+          id?: string
+          message?: string | null
+          reason?: string | null
+          responded_at?: string | null
+          response_energy?: number | null
+          response_note?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkins_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       oura_daily: {
         Row: {
           active_calories: number | null

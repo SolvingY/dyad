@@ -10,3 +10,9 @@ verify_jwt = false
 
 [functions.oura-sync]
 verify_jwt = false
+
+[functions.agent-checkin]
+verify_jwt = false
+
+[functions.checkin-respond]
+verify_jwt = false
