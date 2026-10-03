@@ -274,3 +274,19 @@
 .ask-dyad-md strong { color: var(--foreground); font-weight: 500; }
 .ask-dyad-md h1, .ask-dyad-md h2, .ask-dyad-md h3 { color: var(--foreground); font-weight: 500; font-size: 0.95em; letter-spacing: 0.02em; }
 .ask-dyad-md code { font-size: 0.9em; opacity: 0.9; }
+
+@utility dyad-logo-glow {
+  filter: drop-shadow(0 0 6px color-mix(in oklab, var(--color-foreground) 55%, transparent))
+    drop-shadow(0 0 18px color-mix(in oklab, var(--color-human) 35%, transparent))
+    drop-shadow(0 0 28px color-mix(in oklab, var(--color-agent) 35%, transparent));
+  animation: dyad-logo-breathe 6s ease-in-out infinite;
+}
+
+@keyframes dyad-logo-breathe {
+  0%, 100% { opacity: 0.92; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dyad-logo-glow { animation: none; }
+}
