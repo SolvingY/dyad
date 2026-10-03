@@ -404,12 +404,12 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
             float cyc = fract(uTime * (0.12 + rate * 0.5) + aRand * 7.31);
             float head = cyc * 1.6; // 1.0 of travel + 0.6 of rest
             float d = abs(aT - head);
-            float pulse = (1.0 - smoothstep(0.0, 0.09, d)) * step(head, 1.0);
+            float pulse = (1.0 - smoothstep(0.0, 0.16, d)) * step(head, 1.0);
             vec3 gold = vec3(0.96, 0.77, 0.09);
             vec3 teal = vec3(0.0, 0.83, 0.78);
             vec3 shared = vec3(0.62, 0.96, 0.85);
             vColor = human ? gold : (agent ? teal : shared);
-            vAlpha = (0.05 + pulse * 0.85) * boost;
+            vAlpha = (0.07 + pulse * 1.0) * boost;
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
           }
         `,
