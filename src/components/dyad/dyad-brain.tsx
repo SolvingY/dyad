@@ -409,7 +409,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
             vec3 teal = vec3(0.0, 0.83, 0.78);
             vec3 shared = vec3(0.62, 0.96, 0.85);
             vColor = human ? gold : (agent ? teal : shared);
-            vAlpha = (0.07 + pulse * 1.0) * boost;
+            vAlpha = (0.55 + pulse * 1.5) * boost; // DEBUG
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
           }
         `,
