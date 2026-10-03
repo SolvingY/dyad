@@ -8,23 +8,22 @@ import { ReadinessRing } from "@/components/dyad/readiness-ring";
 import { cn } from "@/lib/utils";
 import type { AgentRow, OuraRow } from "@/lib/dyad/vitals";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/app")({
   head: () => ({
     meta: [
-      { title: "Dyad — Shared vitals for human & agent" },
+      { title: "Your dashboard — Dyad" },
       {
         name: "description",
         content: "A calm conversation between you and your AI agent, grounded in both of your vitals.",
       },
-      { property: "og:title", content: "Dyad — Shared vitals for human & agent" },
+      { property: "og:title", content: "Your dashboard — Dyad" },
       {
         property: "og:description",
         content: "A calm conversation between you and your AI agent, grounded in both of your vitals.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:image", content: "https://dyadai.me/og-image.jpg" },
-      { name: "twitter:image", content: "https://dyadai.me/og-image.jpg" },
+      { name: "robots", content: "noindex" },
     ],
   }),
   component: Dashboard,
@@ -124,6 +123,16 @@ async function connectOura() {
 const pct = (v: number | null | undefined) => (v == null ? null : `${Math.round(v * 100)}%`);
 
 function Dashboard() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!loading && !user) navigate({ to: "/auth", replace: true });
+  }, [loading, user, navigate]);
+  if (loading || !user) return <div className="dyad-ambient h-dvh" />;
+  return <DashboardInner />;
+}
+
+function DashboardInner() {
   const d = useDyadData();
   const { oura, agentDay } = d;
 
