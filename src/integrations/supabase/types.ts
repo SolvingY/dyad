@@ -14,6 +14,32 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_calls: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: number
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: never
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_calls_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_daily: {
         Row: {
           activity_score: number | null
@@ -159,32 +185,6 @@ export type Database = {
           },
         ]
       }
-      agent_key_calls: {
-        Row: {
-          created_at: string
-          id: number
-          key_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: never
-          key_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: never
-          key_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agent_key_calls_key_id_fkey"
-            columns: ["key_id"]
-            isOneToOne: false
-            referencedRelation: "agent_keys"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       agent_keys: {
         Row: {
           agent_id: string
@@ -232,6 +232,7 @@ export type Database = {
           id: string
           model: string | null
           name: string
+          oauth_client_id: string | null
           source: string
           updated_at: string
           user_id: string
@@ -241,6 +242,7 @@ export type Database = {
           id?: string
           model?: string | null
           name: string
+          oauth_client_id?: string | null
           source?: string
           updated_at?: string
           user_id: string
@@ -250,6 +252,7 @@ export type Database = {
           id?: string
           model?: string | null
           name?: string
+          oauth_client_id?: string | null
           source?: string
           updated_at?: string
           user_id?: string
@@ -510,8 +513,8 @@ export type Database = {
         Args: { p_secret: string }
         Returns: boolean
       }
-      consume_agent_key_call: {
-        Args: { p_key_id: string; p_limit: number; p_window_seconds: number }
+      consume_agent_call: {
+        Args: { p_agent_id: string; p_limit: number; p_window_seconds: number }
         Returns: number
       }
       mark_event_corrected: {
