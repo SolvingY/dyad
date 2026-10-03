@@ -232,7 +232,6 @@ export type Database = {
           id: string
           model: string | null
           name: string
-          oauth_client_id: string | null
           source: string
           updated_at: string
           user_id: string
@@ -242,7 +241,6 @@ export type Database = {
           id?: string
           model?: string | null
           name: string
-          oauth_client_id?: string | null
           source?: string
           updated_at?: string
           user_id: string
@@ -252,7 +250,6 @@ export type Database = {
           id?: string
           model?: string | null
           name?: string
-          oauth_client_id?: string | null
           source?: string
           updated_at?: string
           user_id?: string
