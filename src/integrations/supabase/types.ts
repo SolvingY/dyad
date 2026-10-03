@@ -159,6 +159,32 @@ export type Database = {
           },
         ]
       }
+      agent_key_calls: {
+        Row: {
+          created_at: string
+          id: number
+          key_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          key_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          key_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_key_calls_key_id_fkey"
+            columns: ["key_id"]
+            isOneToOne: false
+            referencedRelation: "agent_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_keys: {
         Row: {
           agent_id: string
@@ -483,6 +509,10 @@ export type Database = {
       check_checkin_cron_secret: {
         Args: { p_secret: string }
         Returns: boolean
+      }
+      consume_agent_key_call: {
+        Args: { p_key_id: string; p_limit: number; p_window_seconds: number }
+        Returns: number
       }
       mark_event_corrected: {
         Args: { p_corrected?: boolean; p_event_id: string }
