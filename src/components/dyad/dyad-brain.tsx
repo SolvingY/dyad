@@ -422,9 +422,12 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         `,
         transparent: true,
         depthWrite: false,
+        depthTest: false, // lines run through the brain interior; draw them over the surface
         blending: THREE.AdditiveBlending,
       });
-      scene.add(new THREE.LineSegments(lg, lm));
+      const synapses = new THREE.LineSegments(lg, lm);
+      synapses.renderOrder = 10;
+      scene.add(synapses);
 
       // Shared core: compares the two readiness values.
       const coreMat = new THREE.MeshBasicMaterial({
