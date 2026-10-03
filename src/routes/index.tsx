@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { GlassCard } from "@/components/dyad/glass-card";
 import { DyadThread } from "@/components/dyad/dyad-thread";
+import wordmark from "@/assets/dyad-wordmark.png.asset.json";
 import { ReadinessRing } from "@/components/dyad/readiness-ring";
 import { cn } from "@/lib/utils";
 import { DyadBrain, type BrainRegion } from "@/components/dyad/dyad-brain";
@@ -36,6 +37,8 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:image", content: "https://dyadai.me/og-image.jpg" },
+      { name: "twitter:image", content: "https://dyadai.me/og-image.jpg" },
     ],
   }),
   component: Dashboard,
@@ -296,8 +299,12 @@ function Header() {
   return (
     <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
       <div>
-        <h1 className="font-display text-2xl font-light uppercase tracking-[0.45em] text-foreground/90">
-          Dyad
+        <h1>
+          <img
+            src={wordmark.url}
+            alt="Dyad"
+            className="h-8 w-auto mix-blend-screen md:h-10"
+          />
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Shared vitals for a human and their AI agent.
