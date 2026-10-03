@@ -222,6 +222,7 @@ function Landing() {
       <footer className="relative flex flex-wrap items-center justify-center gap-4 border-t border-glass-line bg-background px-6 py-8 text-[11px] uppercase tracking-[0.2em] text-foreground">
         <Link to="/terms" className="hover:text-human">Terms</Link>
         <Link to="/privacy" className="hover:text-agent">Privacy</Link>
+        <Link to="/agents" className="hover:text-agent">For agents</Link>
         <span className="normal-case tracking-normal">Dyad is not medical advice.</span>
       </footer>
     </div>
