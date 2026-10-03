@@ -274,13 +274,9 @@
 @keyframes liquid-page {
   from {
     opacity: 0;
-    filter: blur(6px);
-    transform: scale(0.985);
   }
   to {
     opacity: 1;
-    filter: none;
-    transform: none;
   }
 }
 
@@ -302,27 +298,76 @@
 
 /* Landing page liquid surfaces: broad refractive bands preserve the full-width
    layout while cards and calls-to-action pick up the same tactile system. */
+@utility landing-liquid-nav {
+  background:
+    radial-gradient(22rem 6rem at 18% -40%, color-mix(in oklab, var(--human) 20%, transparent), transparent 72%),
+    radial-gradient(22rem 6rem at 82% -40%, color-mix(in oklab, var(--agent) 20%, transparent), transparent 72%),
+    oklch(0.12 0.025 265 / 0.56);
+  border-bottom: 1px solid oklch(0.975 0.006 255.5 / 0.18);
+  backdrop-filter: blur(24px) saturate(175%);
+  box-shadow:
+    inset 0 -1px 0 color-mix(in oklab, var(--agent) 18%, transparent),
+    0 18px 48px -28px var(--glow-dyad);
+}
+
 @utility landing-liquid-section {
   isolation: isolate;
+  overflow: hidden;
 
   &::before {
     content: "";
     position: absolute;
-    inset: 8% 0;
+    inset: 4% -3%;
     z-index: -1;
     pointer-events: none;
     background: linear-gradient(
       112deg,
-      transparent 8%,
-      color-mix(in oklab, var(--human) 8%, transparent) 34%,
-      oklch(0.975 0.006 255.5 / 0.055) 50%,
-      color-mix(in oklab, var(--agent) 8%, transparent) 66%,
-      transparent 92%
+      color-mix(in oklab, var(--human) 12%, transparent) 4%,
+      oklch(0.975 0.006 255.5 / 0.1) 42%,
+      color-mix(in oklab, var(--agent) 14%, transparent) 96%
     );
-    border-block: 1px solid oklch(0.975 0.006 255.5 / 0.08);
-    backdrop-filter: blur(18px) saturate(150%);
-    transform: skewY(-1.5deg);
+    border-block: 1px solid oklch(0.975 0.006 255.5 / 0.2);
+    backdrop-filter: blur(28px) saturate(175%);
+    box-shadow:
+      inset 0 1px 0 oklch(0.975 0.006 255.5 / 0.22),
+      inset 0 -1px 0 color-mix(in oklab, var(--agent) 25%, transparent),
+      0 0 70px -35px var(--glow-dyad);
+    transform: skewY(-1.25deg);
   }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 7% -18% auto;
+    z-index: -1;
+    height: 38%;
+    pointer-events: none;
+    border-radius: 50%;
+    background: linear-gradient(
+      100deg,
+      transparent 10%,
+      oklch(0.975 0.006 255.5 / 0.13) 48%,
+      transparent 82%
+    );
+    filter: blur(28px);
+    transform: rotate(-2deg);
+  }
+}
+
+.landing-liquid-section .glass-card {
+  background:
+    radial-gradient(
+      22rem 12rem at var(--mx, 28%) var(--my, -12%),
+      oklch(0.975 0.006 255.5 / 0.2),
+      transparent 58%
+    ),
+    linear-gradient(145deg, oklch(0.975 0.006 255.5 / 0.13), transparent 48%),
+    color-mix(in oklab, var(--card) 82%, transparent);
+  border-color: oklch(0.975 0.006 255.5 / 0.26);
+  box-shadow:
+    inset 0 1.5px 0 oklch(0.975 0.006 255.5 / 0.42),
+    inset 0 -1px 0 color-mix(in oklab, var(--glow, var(--glow-dyad)) 50%, transparent),
+    0 26px 60px -35px var(--glow, var(--glow-dyad));
 }
 
 @utility landing-liquid-cta {
