@@ -273,6 +273,12 @@ function Landing() {
             </li>
           ))}
         </ol>
+        <Link
+          to="/agents"
+          className="mx-auto mt-6 block w-fit text-sm text-agent underline-offset-4 hover:underline"
+        >
+          Bringing your own agent? See how to connect it over MCP
+        </Link>
         <SignupCta className="mt-12" />
       </section>
 
