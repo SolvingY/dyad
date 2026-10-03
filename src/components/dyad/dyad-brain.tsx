@@ -128,17 +128,13 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
 
     (async () => {
       try {
-        const [THREE, { OrbitControls }, { EffectComposer }, { RenderPass }, { UnrealBloomPass }, gltf] =
-          await Promise.all([
-            import("three"),
-            import("three/addons/controls/OrbitControls.js"),
-            import("three/addons/postprocessing/EffectComposer.js"),
-            import("three/addons/postprocessing/RenderPass.js"),
-            import("three/addons/postprocessing/UnrealBloomPass.js"),
-            loadBrainModel(),
-          ]);
+        const [THREE, { OrbitControls }, gltf] = await Promise.all([
+          import("three"),
+          import("three/addons/controls/OrbitControls.js"),
+          loadBrainModel(),
+        ]);
         if (disposed) return;
-        build(THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, gltf);
+        build(THREE, OrbitControls, gltf);
         setStatus("ready");
       } catch (e) {
         console.error("Dyad brain failed to load", e);
@@ -149,9 +145,6 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
     function build(
       THREE: typeof THREEType,
       OrbitControls: typeof import("three/addons/controls/OrbitControls.js").OrbitControls,
-      EffectComposer: typeof import("three/addons/postprocessing/EffectComposer.js").EffectComposer,
-      RenderPass: typeof import("three/addons/postprocessing/RenderPass.js").RenderPass,
-      UnrealBloomPass: typeof import("three/addons/postprocessing/UnrealBloomPass.js").UnrealBloomPass,
       gltf: GLTF,
     ) {
       const scene = new THREE.Scene();
@@ -161,17 +154,11 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.0;
+      // Fully transparent clear: the page background shows through, no black box.
       renderer.setClearColor(0x000000, 0);
       const canvas = renderer.domElement;
       canvas.className = "block h-full w-full";
-      // Composer output is opaque; screen-blend so black reads as the card behind it.
-      canvas.style.mixBlendMode = "screen";
       wrap!.appendChild(canvas);
-
-      const composer = new EffectComposer(renderer);
-      composer.addPass(new RenderPass(scene, camera));
-      const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.45, 0.72, 0.12);
-      composer.addPass(bloom);
 
       const controls = new OrbitControls(camera, canvas);
       controls.enableDamping = true;
@@ -344,6 +331,104 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
       });
       scene.add(new THREE.Points(pg, pm));
 
+      // Neural connections: nearby cortical points linked by lines, with a
+      // bright pulse traveling along each one and re-firing at random intervals.
+      const sampled: { x: number; y: number; z: number; side: number }[] = [];
+      for (let i = 0; i < pos.length / 3; i++) {
+        sampled.push({ x: pos[i * 3]!, y: pos[i * 3 + 1]!, z: pos[i * 3 + 2]!, side: sideAttr[i]! });
+      }
+      const CONNECTIONS = 120;
+      const linePos: number[] = [];
+      const lineT: number[] = [];
+      const lineRand: number[] = [];
+      const lineSide: number[] = [];
+      let made = 0;
+      let guard = 0;
+      while (made < CONNECTIONS && guard++ < 8000 && sampled.length > 8) {
+        const a = sampled[Math.floor(Math.random() * sampled.length)]!;
+        // Prefer a nearby partner on the same side; ~1 in 6 crosses the midline.
+        const cross = made % 6 === 5;
+        let best: (typeof sampled)[number] | null = null;
+        let bestD = Infinity;
+        for (let tries = 0; tries < 24; tries++) {
+          const b = sampled[Math.floor(Math.random() * sampled.length)]!;
+          if (b === a) continue;
+          if (!cross && Math.abs(b.side - a.side) > 0.25) continue;
+          if (cross && Math.abs(b.side - a.side) < 0.5) continue;
+          const d = (b.x - a.x) ** 2 + (b.y - a.y) ** 2 + (b.z - a.z) ** 2;
+          if (d < bestD) {
+            bestD = d;
+            best = b;
+          }
+        }
+        if (!best) continue;
+        const r = Math.random();
+        const side = (a.side + best.side) / 2;
+        linePos.push(a.x, a.y, a.z, best.x, best.y, best.z);
+        lineT.push(0, 1);
+        lineRand.push(r, r);
+        lineSide.push(side, side);
+        made++;
+      }
+      const lg = new THREE.BufferGeometry();
+      lg.setAttribute("position", new THREE.Float32BufferAttribute(linePos, 3));
+      lg.setAttribute("aT", new THREE.Float32BufferAttribute(lineT, 1));
+      lg.setAttribute("aRand", new THREE.Float32BufferAttribute(lineRand, 1));
+      lg.setAttribute("aSide", new THREE.Float32BufferAttribute(lineSide, 1));
+      const lineUniforms = {
+        uTime: { value: 0 },
+        uRateH: { value: 0.4 },
+        uRateA: { value: 0.4 },
+        uBoostH: { value: 1 },
+        uBoostA: { value: 1 },
+      };
+      const lm = new THREE.ShaderMaterial({
+        uniforms: lineUniforms,
+        vertexShader: /* glsl */ `
+          attribute float aT;
+          attribute float aRand;
+          attribute float aSide;
+          uniform float uTime;
+          uniform float uRateH;
+          uniform float uRateA;
+          uniform float uBoostH;
+          uniform float uBoostA;
+          varying vec3 vColor;
+          varying float vAlpha;
+          void main() {
+            bool agent = aSide > 0.75;
+            bool human = aSide < 0.25;
+            float rate = agent ? uRateA : (human ? uRateH : (uRateH + uRateA) * 0.5);
+            float boost = agent ? uBoostA : (human ? uBoostH : 1.0);
+            // Pulse position travels 0 -> 1 along the line, then rests.
+            float cyc = fract(uTime * (0.12 + rate * 0.5) + aRand * 7.31);
+            float head = cyc * 1.6; // 1.0 of travel + 0.6 of rest
+            float d = abs(aT - head);
+            float pulse = (1.0 - smoothstep(0.0, 0.16, d)) * step(head, 1.0);
+            vec3 gold = vec3(0.96, 0.77, 0.09);
+            vec3 teal = vec3(0.0, 0.83, 0.78);
+            vec3 shared = vec3(0.62, 0.96, 0.85);
+            vColor = human ? gold : (agent ? teal : shared);
+            vAlpha = (0.1 + pulse * 1.2) * boost;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          varying vec3 vColor;
+          varying float vAlpha;
+          void main() {
+            gl_FragColor = vec4(vColor, vAlpha);
+          }
+        `,
+        transparent: true,
+        depthWrite: false,
+        depthTest: false, // lines run through the brain interior; draw them over the surface
+        blending: THREE.AdditiveBlending,
+      });
+      const synapses = new THREE.LineSegments(lg, lm);
+      synapses.renderOrder = 10;
+      scene.add(synapses);
+
       // Shared core: compares the two readiness values.
       const coreMat = new THREE.MeshBasicMaterial({
         color: shared.clone(), transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -361,7 +446,6 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         const w = Math.max(1, wrap!.clientWidth);
         const h = Math.max(1, wrap!.clientHeight);
         renderer.setSize(w, h, false);
-        composer.setSize(w, h);
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
       };
@@ -419,7 +503,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         const hPulse = h ? 1 + 0.03 * Math.sin(t * Math.PI * 2 * h.pulseHz) : 1;
         const hThroughput = h ? 0.9 + 0.2 * h.throughput : 1;
         mats.human.emissiveIntensity =
-          (0.16 + 0.5 * smooth.h) * hFlicker * hPulse * hThroughput * (humanSel ? 1.7 : 1);
+          (0.22 + 0.55 * smooth.h) * hFlicker * hPulse * hThroughput * (humanSel ? 1.7 : 1);
         mats.human.opacity = (0.62 + 0.16 * smooth.h) * (agentSel ? 0.3 : 1) * (humanSel ? 1.2 : 1);
         tmpColor.copy(gold).lerp(ember, (h?.warmth ?? 0) * 0.35).multiplyScalar(0.5);
         mats.human.emissive.copy(tmpColor);
@@ -428,7 +512,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         const fresh = a?.freshness ?? 0.5;
         const load = a?.load ?? 0;
         mats.agent.emissiveIntensity =
-          (0.13 + 0.4 * smooth.a + 0.12 * fresh) * (1 - load * 0.12) * (agentSel ? 1.7 : 1);
+          (0.18 + 0.45 * smooth.a + 0.12 * fresh) * (1 - load * 0.12) * (agentSel ? 1.7 : 1);
         mats.agent.opacity =
           (0.55 + 0.14 * fresh + 0.08 * smooth.a) * (humanSel ? 0.3 : 1) * (agentSel ? 1.2 : 1);
         mats.median.emissiveIntensity = 0.26 + 0.3 * v.center.brightness + (sel === "center" ? 0.15 : 0);
@@ -473,11 +557,17 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         const breathe = reduceMotion ? 0 : Math.sin(t * 0.9);
         core.scale.setScalar(1 + 0.12 * breathe);
         halo.scale.setScalar(1 + 0.06 * breathe);
-        bloom.strength = 0.22 + 0.2 * ((smooth.h + smooth.a) / 2);
+        // Neural connections: firing rate follows each side's activity; the
+        // selected side's connections brighten.
+        lineUniforms.uTime.value = reduceMotion ? 0 : t;
+        lineUniforms.uRateH.value = h ? 0.25 + h.activity * 0.75 : 0.3;
+        lineUniforms.uRateA.value = a ? 0.25 + a.activity * 0.75 : 0.3;
+        lineUniforms.uBoostH.value = humanSel ? 1.6 : agentSel ? 0.4 : 1;
+        lineUniforms.uBoostA.value = agentSel ? 1.6 : humanSel ? 0.4 : 1;
 
         if (reduceMotion) uniforms.uTime.value = 0;
         controls.update();
-        composer.render();
+        renderer.render(scene, camera);
       };
       const start = () => {
         if (raf || document.hidden || !onScreen) return;
@@ -513,7 +603,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         halo.geometry.dispose();
         coreMat.dispose();
         haloMat.dispose();
-        composer.dispose();
+        renderer.dispose();
         renderer.dispose();
         canvas.remove();
       });
