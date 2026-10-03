@@ -59,8 +59,18 @@ Deno.serve(async (req) => {
 
   const now = new Date();
   const local = chicagoParts(now);
+  // Reminders run every hour (their own quiet hours apply), on the cron path only.
+  const synced = new Set<string>();
+  let reminderCount = 0;
+  if (!selfUserId) {
+    try {
+      reminderCount = await evaluateReminders(admin, now, local.hour, synced);
+    } catch (err) {
+      console.error(`agent-checkin: reminders failed: ${err instanceof Error ? err.message : err}`);
+    }
+  }
   if (!selfUserId && (local.hour < FIRST_HOUR || local.hour > LAST_HOUR)) {
-    return json({ skipped: "outside 9am-6pm America/Chicago" });
+    return json({ skipped: "outside 9am-6pm America/Chicago", notifications: reminderCount });
   }
   const utcToday = now.toISOString().slice(0, 10);
   // dry_run (signed-in callers only, e.g. dyad-mcp's should_check_in tool):
@@ -93,8 +103,10 @@ Deno.serve(async (req) => {
   }[] = [];
   for (const [userId, agentId] of firstAgentByUser) {
     try {
-      const sync = await callAsUser("oura-sync", userId, {});
-      if (!sync.ok) console.warn(`agent-checkin: oura-sync returned HTTP ${sync.status}`);
+      if (!synced.has(userId)) {
+        const sync = await callAsUser("oura-sync", userId, {});
+        if (!sync.ok) console.warn(`agent-checkin: oura-sync returned HTTP ${sync.status}`);
+      }
 
       const [{ data: oura }, { data: agentDay }, { data: recent }] = await Promise.all([
         admin
