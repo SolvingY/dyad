@@ -39,45 +39,57 @@ type SyncState = "idle" | "syncing" | "ok" | "failed";
 // existing oura-sync (run once on sign-in, and on Retry).
 function useDyadData() {
   const { user } = useAuth();
-  const [oura, setOura] = useState<OuraRow | null>(null);
+  const [ouraRows, setOuraRows] = useState<OuraRow[]>([]);
   const [ouraError, setOuraError] = useState<string | null>(null);
-  const [agentDay, setAgentDay] = useState<AgentRow | null>(null);
+  const [agentRows, setAgentRows] = useState<AgentRow[]>([]);
+  const [agentError, setAgentError] = useState<string | null>(null);
   const [ouraConnected, setOuraConnected] = useState<boolean | null>(null);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [syncState, setSyncState] = useState<SyncState>("idle");
 
+  // Newest 14 days, ordered by day descending; rows[0] is the latest day.
+  // Same query the restored Dyad card and brain use.
   const loadOura = useCallback(async () => {
     const { data, error } = await supabase
       .from("oura_daily")
       .select("*")
       .order("day", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(14);
     if (error) {
       setOuraError(error.message);
-      setOura(null);
+      setOuraRows([]);
       return;
     }
     setOuraError(null);
-    setLastSync(data?.updated_at ?? null);
-    setOura(data ?? null);
+    setLastSync(data?.[0]?.updated_at ?? null);
+    setOuraRows(data ?? []);
   }, []);
 
   const loadAgent = useCallback(async () => {
-    const { data: agent } = await supabase
+    const { data: agent, error: agentErr } = await supabase
       .from("agents")
       .select("id")
       .order("created_at")
       .limit(1)
       .maybeSingle();
+    if (agentErr) {
+      setAgentError(agentErr.message);
+      return;
+    }
     if (!agent) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("agent_daily")
       .select("*")
       .eq("agent_id", agent.id)
-      .eq("day", localDate())
-      .maybeSingle();
-    setAgentDay(data ?? null);
+      .order("day", { ascending: false })
+      .limit(14);
+    if (error) {
+      setAgentError(error.message);
+      setAgentRows([]);
+      return;
+    }
+    setAgentError(null);
+    setAgentRows(data ?? []);
   }, []);
 
   const sync = useCallback(async () => {
@@ -110,8 +122,8 @@ function useDyadData() {
 
   useEffect(() => {
     if (!user) {
-      setOura(null);
-      setAgentDay(null);
+      setOuraRows([]);
+      setAgentRows([]);
       return;
     }
     void loadOura();
@@ -119,7 +131,7 @@ function useDyadData() {
     void sync();
   }, [user?.id, loadOura, loadAgent, sync]);
 
-  return { user, oura, ouraError, agentDay, ouraConnected, lastSync, syncState, sync };
+  return { user, ouraRows, ouraError, agentRows, agentError, ouraConnected, lastSync, syncState, sync };
 }
 
 async function connectOura() {
