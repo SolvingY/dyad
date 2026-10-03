@@ -7,3 +7,6 @@ verify_jwt = false
 
 [functions.agent-call]
 verify_jwt = false
+
+[functions.oura-sync]
+verify_jwt = false

@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { GlassCard } from "@/components/dyad/glass-card";
@@ -26,7 +27,84 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
 });
 
+type OuraDay = {
+  day: string;
+  readiness_score: number | null;
+  sleep_score: number | null;
+  average_hrv: number | null;
+};
+type AgentDay = {
+  day: string;
+  readiness_score: number | null;
+  call_count: number | null;
+  error_rate: number | null;
+};
+
+// Loads the latest oura_daily and agent_daily rows for the signed-in user, and
+// runs oura-sync once so the human side is fresh.
+function useDyadData() {
+  const { user } = useAuth();
+  const [oura, setOura] = useState<OuraDay | null>(null);
+  const [ouraConnected, setOuraConnected] = useState<boolean | null>(null);
+  const [agentDay, setAgentDay] = useState<AgentDay | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    async function loadOura() {
+      const { data } = await supabase
+        .from("oura_daily")
+        .select("day, readiness_score, sleep_score, average_hrv")
+        .order("day", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) setOura(data);
+    }
+
+    async function loadAgent() {
+      const { data: agent } = await supabase
+        .from("agents")
+        .select("id")
+        .order("created_at")
+        .limit(1)
+        .maybeSingle();
+      if (!agent) return;
+      const { data } = await supabase
+        .from("agent_daily")
+        .select("day, readiness_score, call_count, error_rate")
+        .eq("agent_id", agent.id)
+        .order("day", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) setAgentDay(data);
+    }
+
+    void loadOura();
+    void loadAgent();
+    void supabase.functions.invoke("oura-sync").then(({ data }) => {
+      if (cancelled) return;
+      setOuraConnected(typeof data?.connected === "boolean" ? data.connected : null);
+      if (data?.connected) void loadOura();
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  return { user, oura, ouraConnected, agentDay };
+}
+
+async function connectOura() {
+  const { data, error } = await supabase.functions.invoke("oura-auth-start");
+  if (!error && data?.url) window.location.assign(data.url);
+}
+
 function Dashboard() {
+  const { user, oura, ouraConnected, agentDay } = useDyadData();
+  const signedOut = user ? undefined : "Sign in to see your data";
+
   return (
     <div className="dyad-ambient relative min-h-screen overflow-hidden">
       {/* Faint grid texture */}
@@ -50,9 +128,30 @@ function Dashboard() {
         <div className="mt-12 grid gap-6 md:mt-16 lg:grid-cols-[1fr_1.15fr_1fr]">
           <section aria-label="Human" className="flex flex-col gap-5">
             <ColumnHeader title="Human" dotClassName="bg-human" glowClassName="shadow-[0_0_12px_var(--human)]" />
-            <ReadinessCard tone="human" label="Readiness" />
-            <SlotCard index="01" tone="human" />
-            <SlotCard index="02" tone="human" />
+            <ReadinessCard
+              tone="human"
+              label="Readiness"
+              value={oura?.readiness_score}
+              caption={signedOut ?? (oura ? `Oura · ${oura.day}` : "No Oura data yet")}
+              action={
+                ouraConnected === false && (
+                  <button
+                    type="button"
+                    onClick={connectOura}
+                    className="glass-card mt-4 rounded-full px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
+                  >
+                    Connect Oura
+                  </button>
+                )
+              }
+            />
+            <SlotCard index="01" tone="human" label="Sleep score" value={oura?.sleep_score} />
+            <SlotCard
+              index="02"
+              tone="human"
+              label="Avg HRV"
+              value={oura?.average_hrv == null ? null : `${Math.round(oura.average_hrv)} ms`}
+            />
           </section>
 
           <section aria-label="Cross-analysis" className="relative flex flex-col gap-5">
@@ -67,9 +166,21 @@ function Dashboard() {
 
           <section aria-label="Agent" className="flex flex-col gap-5">
             <ColumnHeader title="Agent" dotClassName="bg-agent" glowClassName="shadow-[0_0_12px_var(--agent)]" />
-            <ReadinessCard tone="agent" label="Readiness" />
-            <SlotCard index="01" tone="agent" />
-            <SlotCard index="02" tone="agent" />
+            <ReadinessCard
+              tone="agent"
+              label="Readiness"
+              value={agentDay?.readiness_score}
+              caption={signedOut ?? (agentDay ? `Agent · ${agentDay.day}` : "No agent calls yet")}
+            />
+            <SlotCard index="01" tone="agent" label="Calls" value={agentDay?.call_count} />
+            <SlotCard
+              index="02"
+              tone="agent"
+              label="Error rate"
+              value={
+                agentDay?.error_rate == null ? null : `${Math.round(agentDay.error_rate * 100)}%`
+              }
+            />
           </section>
         </div>
 
@@ -164,7 +275,19 @@ function ColumnHeader({
   );
 }
 
-function ReadinessCard({ tone, label }: { tone: "human" | "agent" | "dyad"; label: string }) {
+function ReadinessCard({
+  tone,
+  label,
+  value,
+  caption = "Awaiting schema",
+  action,
+}: {
+  tone: "human" | "agent" | "dyad";
+  label: string;
+  value?: number | null | undefined;
+  caption?: string;
+  action?: ReactNode;
+}) {
   return (
     <GlassCard tone={tone} className="flex flex-col items-center px-6 pb-8 pt-6">
       <div className="flex w-full items-center justify-between">
@@ -175,16 +298,27 @@ function ReadinessCard({ tone, label }: { tone: "human" | "agent" | "dyad"; labe
           RING
         </span>
       </div>
-      <ReadinessRing tone={tone} className="mt-7" />
+      <ReadinessRing tone={tone} value={value} className="mt-7" />
       <p className="mt-6 font-display text-5xl font-extralight tracking-tight text-foreground/85">
-        —
+        {value ?? "—"}
       </p>
-      <p className="mt-2 text-xs text-muted-foreground/80">Awaiting schema</p>
+      <p className="mt-2 text-xs text-muted-foreground/80">{caption}</p>
+      {action}
     </GlassCard>
   );
 }
 
-function SlotCard({ index, tone }: { index: string; tone: "human" | "agent" | "dyad" }) {
+function SlotCard({
+  index,
+  tone,
+  label,
+  value,
+}: {
+  index: string;
+  tone: "human" | "agent" | "dyad";
+  label?: string;
+  value?: number | string | null | undefined;
+}) {
   return (
     <GlassCard tone={tone} className="flex flex-1 flex-col px-6 pb-6 pt-6">
       {tone === "dyad" && (
@@ -202,9 +336,9 @@ function SlotCard({ index, tone }: { index: string; tone: "human" | "agent" | "d
         </span>
       </div>
       <p className="mt-8 font-display text-4xl font-extralight tracking-tight text-foreground/80">
-        —
+        {value ?? "—"}
       </p>
-      <p className="mt-3 text-xs text-muted-foreground/80">Awaiting schema</p>
+      <p className="mt-3 text-xs text-muted-foreground/80">{label ?? "Awaiting schema"}</p>
     </GlassCard>
   );
 }
