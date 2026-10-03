@@ -66,7 +66,9 @@ Deno.serve(async (req) => {
 
   const tokens = (await tokenRes.json()) as OuraTokenResponse;
   if (!tokens.access_token || !tokens.refresh_token || typeof tokens.expires_in !== "number") {
-    console.error("oura-callback: token response missing access_token, refresh_token or expires_in");
+    console.error(
+      "oura-callback: token response missing access_token, refresh_token or expires_in",
+    );
     return json({ error: "token_exchange_failed" }, 502);
   }
 

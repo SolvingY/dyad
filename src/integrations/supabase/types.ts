@@ -14,13 +14,332 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      agent_daily: {
+        Row: {
+          activity_score: number | null
+          agent_id: string
+          avg_context_fill: number | null
+          baseline_latency_ms: number | null
+          cache_hit_rate: number | null
+          call_count: number | null
+          calls_per_hour: number | null
+          correction_rate: number | null
+          created_at: string
+          day: string
+          error_rate: number | null
+          error_rate_deviation: number | null
+          freshness_score: number | null
+          id: string
+          latency_variability_ms: number | null
+          output_tokens: number | null
+          raw: Json | null
+          readiness_score: number | null
+          retry_rate: number | null
+          total_tokens: number | null
+          updated_at: string
+        }
+        Insert: {
+          activity_score?: number | null
+          agent_id: string
+          avg_context_fill?: number | null
+          baseline_latency_ms?: number | null
+          cache_hit_rate?: number | null
+          call_count?: number | null
+          calls_per_hour?: number | null
+          correction_rate?: number | null
+          created_at?: string
+          day: string
+          error_rate?: number | null
+          error_rate_deviation?: number | null
+          freshness_score?: number | null
+          id?: string
+          latency_variability_ms?: number | null
+          output_tokens?: number | null
+          raw?: Json | null
+          readiness_score?: number | null
+          retry_rate?: number | null
+          total_tokens?: number | null
+          updated_at?: string
+        }
+        Update: {
+          activity_score?: number | null
+          agent_id?: string
+          avg_context_fill?: number | null
+          baseline_latency_ms?: number | null
+          cache_hit_rate?: number | null
+          call_count?: number | null
+          calls_per_hour?: number | null
+          correction_rate?: number | null
+          created_at?: string
+          day?: string
+          error_rate?: number | null
+          error_rate_deviation?: number | null
+          freshness_score?: number | null
+          id?: string
+          latency_variability_ms?: number | null
+          output_tokens?: number | null
+          raw?: Json | null
+          readiness_score?: number | null
+          retry_rate?: number | null
+          total_tokens?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_daily_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_events: {
+        Row: {
+          agent_id: string
+          cached_tokens: number | null
+          context_limit: number | null
+          context_tokens: number | null
+          created_at: string
+          error: string | null
+          event_type: string
+          id: string
+          latency_ms: number | null
+          model: string | null
+          retry_count: number
+          status: string
+          task_id: string | null
+          tokens_in: number | null
+          tokens_out: number | null
+          was_corrected: boolean
+        }
+        Insert: {
+          agent_id: string
+          cached_tokens?: number | null
+          context_limit?: number | null
+          context_tokens?: number | null
+          created_at?: string
+          error?: string | null
+          event_type?: string
+          id?: string
+          latency_ms?: number | null
+          model?: string | null
+          retry_count?: number
+          status?: string
+          task_id?: string | null
+          tokens_in?: number | null
+          tokens_out?: number | null
+          was_corrected?: boolean
+        }
+        Update: {
+          agent_id?: string
+          cached_tokens?: number | null
+          context_limit?: number | null
+          context_tokens?: number | null
+          created_at?: string
+          error?: string | null
+          event_type?: string
+          id?: string
+          latency_ms?: number | null
+          model?: string | null
+          retry_count?: number
+          status?: string
+          task_id?: string | null
+          tokens_in?: number | null
+          tokens_out?: number | null
+          was_corrected?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_events_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agents: {
+        Row: {
+          created_at: string
+          id: string
+          model: string | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          model?: string | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          model?: string | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      oura_daily: {
+        Row: {
+          active_calories: number | null
+          activity_score: number | null
+          average_heart_rate: number | null
+          average_hrv: number | null
+          created_at: string
+          day: string
+          id: string
+          main_sleep_seconds: number | null
+          nap_count: number | null
+          nap_seconds: number | null
+          raw_activity: Json | null
+          raw_readiness: Json | null
+          raw_sleep_daily: Json | null
+          raw_sleep_sessions: Json | null
+          readiness_score: number | null
+          respiratory_rate: number | null
+          resting_heart_rate: number | null
+          sleep_efficiency: number | null
+          sleep_score: number | null
+          sleep_session_count: number | null
+          steps: number | null
+          temperature_deviation: number | null
+          total_calories: number | null
+          total_sleep_seconds: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_calories?: number | null
+          activity_score?: number | null
+          average_heart_rate?: number | null
+          average_hrv?: number | null
+          created_at?: string
+          day: string
+          id?: string
+          main_sleep_seconds?: number | null
+          nap_count?: number | null
+          nap_seconds?: number | null
+          raw_activity?: Json | null
+          raw_readiness?: Json | null
+          raw_sleep_daily?: Json | null
+          raw_sleep_sessions?: Json | null
+          readiness_score?: number | null
+          respiratory_rate?: number | null
+          resting_heart_rate?: number | null
+          sleep_efficiency?: number | null
+          sleep_score?: number | null
+          sleep_session_count?: number | null
+          steps?: number | null
+          temperature_deviation?: number | null
+          total_calories?: number | null
+          total_sleep_seconds?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_calories?: number | null
+          activity_score?: number | null
+          average_heart_rate?: number | null
+          average_hrv?: number | null
+          created_at?: string
+          day?: string
+          id?: string
+          main_sleep_seconds?: number | null
+          nap_count?: number | null
+          nap_seconds?: number | null
+          raw_activity?: Json | null
+          raw_readiness?: Json | null
+          raw_sleep_daily?: Json | null
+          raw_sleep_sessions?: Json | null
+          readiness_score?: number | null
+          respiratory_rate?: number | null
+          resting_heart_rate?: number | null
+          sleep_efficiency?: number | null
+          sleep_score?: number | null
+          sleep_session_count?: number | null
+          steps?: number | null
+          temperature_deviation?: number | null
+          total_calories?: number | null
+          total_sleep_seconds?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      oura_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          refresh_token: string
+          scope: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          refresh_token: string
+          scope?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          refresh_token?: string
+          scope?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      mark_event_corrected: {
+        Args: { p_corrected?: boolean; p_event_id: string }
+        Returns: undefined
+      }
+      refresh_agent_daily: {
+        Args: { p_agent_id: string; p_day: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

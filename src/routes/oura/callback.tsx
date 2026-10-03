@@ -6,7 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 // forwards the code to the oura-callback edge function with the user's
 // session, then sends them home with ?oura=connected|denied|error.
 export const Route = createFileRoute("/oura/callback")({
-  head: () => ({ meta: [{ title: "Connecting Oura — Dyad" }] }),
+  head: () => ({
+    meta: [{ title: "Connecting Oura — Dyad" }, { name: "robots", content: "noindex" }],
+  }),
+  ssr: false,
   component: OuraCallbackPage,
 });
 
