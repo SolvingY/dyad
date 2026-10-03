@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { streamSpeech } from "@/lib/speech/stream-speech";
+import { McpConnectHint } from "@/components/dyad/mcp-instructions";
 
 // The Dyad conversation, live from thread_messages. Sending goes through the
 // dyad-thread edge function; the empty state can trigger agent-checkin once.
@@ -298,6 +299,7 @@ export function DyadThread() {
                 {checkinState === "running" ? "Checking in…" : "Check in now"}
               </button>
             )}
+            <McpConnectHint />
           </div>
         )}
         {messages?.map((m) =>

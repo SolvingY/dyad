@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConnectedAgents } from "@/components/dyad/connected-agents";
+import { McpInstructions } from "@/components/dyad/mcp-instructions";
 
 // Test page for the agent: create an agent, send one message through the
 // agent-call edge function, and see the reply and the agent_events row it logged.
@@ -98,7 +99,8 @@ function AgentPage() {
         <Link to="/app" className="text-sm text-muted-foreground hover:text-foreground">
           ← Dashboard
         </Link>
-        <h1 className="font-display text-2xl font-light uppercase tracking-[0.3em]">Agent</h1>
+        <h1 className="font-display text-2xl font-light uppercase tracking-[0.3em]">Connect Your Agent</h1>
+        <McpInstructions />
 
         {!user ? (
           <p className="text-sm text-muted-foreground">
