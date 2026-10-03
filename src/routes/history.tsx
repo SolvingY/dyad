@@ -146,6 +146,10 @@ function Trends() {
     { label: "Calls", points: chron(agentRows).map((r) => ({ day: r.day, v: r.call_count })), format: int },
     { label: "Error rate", points: chron(agentRows).map((r) => ({ day: r.day, v: r.error_rate })), format: pct },
     { label: "Correction rate", points: chron(agentRows).map((r) => ({ day: r.day, v: r.correction_rate })), format: pct },
+    { label: "Latency", points: chron(agentRows).map((r) => ({ day: r.day, v: r.baseline_latency_ms })), format: ms },
+    { label: "Retry rate", points: chron(agentRows).map((r) => ({ day: r.day, v: r.retry_rate })), format: pct },
+    { label: "Tokens", points: chron(agentRows).map((r) => ({ day: r.day, v: r.total_tokens })), format: int },
+    { label: "Context fill", points: chron(agentRows).map((r) => ({ day: r.day, v: r.avg_context_fill })), format: pct },
   ];
 
   const range = (rows: { day: string }[]) => {
