@@ -22,3 +22,6 @@ verify_jwt = false
 
 [functions.agent-keys]
 verify_jwt = false
+
+[functions.dyad-greeting]
+verify_jwt = false
