@@ -158,27 +158,194 @@
 
 /* ---------- Dyad utilities ---------- */
 
+/* Liquid Glass: thick refractive glass, specular top edge, pointer-tracked shine,
+   tone-tinted rim. --mx/--my are set by the LiquidLayer pointer handler. */
 @utility glass-card {
   position: relative;
+  isolation: isolate;
   background:
-    linear-gradient(165deg, var(--glass-sheen), transparent 45%),
-    oklch(0.233 0.035 266.6 / 0.28);
-  border: 1px solid var(--glass-line);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+    radial-gradient(
+      28rem 18rem at var(--mx, 30%) var(--my, -10%),
+      oklch(0.975 0.006 255.5 / 0.1),
+      transparent 60%
+    ),
+    linear-gradient(165deg, oklch(0.975 0.006 255.5 / 0.09), transparent 40%),
+    linear-gradient(
+      0deg,
+      color-mix(in oklab, var(--glow, var(--glow-dyad)) 10%, transparent),
+      transparent 55%
+    ),
+    oklch(0.2 0.035 266.6 / 0.42);
+  border: 1px solid oklch(0.975 0.006 255.5 / 0.16);
+  backdrop-filter: blur(22px) saturate(170%) brightness(1.08);
   box-shadow:
-    inset 0 1px 0 0 oklch(0.975 0.006 255.5 / 0.06),
-    0 24px 60px -32px oklch(0 0 0 / 0.9);
+    inset 0 1.5px 0 0 oklch(0.975 0.006 255.5 / 0.32),
+    inset 0 -1px 0 0 color-mix(in oklab, var(--glow, var(--glow-dyad)) 35%, transparent),
+    inset 0 0 24px -6px oklch(0.975 0.006 255.5 / 0.1),
+    0 28px 60px -30px oklch(0 0 0 / 0.95);
   transition:
     border-color 0.5s ease,
-    box-shadow 0.5s ease;
+    box-shadow 0.5s ease,
+    transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* specular highlight running along the top edge */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      180deg,
+      oklch(0.975 0.006 255.5 / 0.55),
+      oklch(0.975 0.006 255.5 / 0.05) 30%,
+      transparent 60%,
+      color-mix(in oklab, var(--glow, var(--glow-dyad)) 50%, transparent)
+    );
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: -1;
+  }
 
   &:hover {
     border-color: var(--glass-line-luminous);
+    transform: translateY(-2px) scale(1.006);
     box-shadow:
-      inset 0 1px 0 0 oklch(0.975 0.006 255.5 / 0.08),
-      0 24px 60px -32px oklch(0 0 0 / 0.9),
-      0 0 44px -10px var(--glow, var(--glow-dyad));
+      inset 0 1.5px 0 0 oklch(0.975 0.006 255.5 / 0.4),
+      inset 0 -1px 0 0 color-mix(in oklab, var(--glow, var(--glow-dyad)) 55%, transparent),
+      inset 0 0 28px -6px oklch(0.975 0.006 255.5 / 0.14),
+      0 32px 70px -30px oklch(0 0 0 / 0.95),
+      0 0 50px -10px var(--glow, var(--glow-dyad));
+  }
+}
+
+/* Edge refraction on desktop browsers that support SVG backdrop filters. */
+@media (min-width: 768px) and (pointer: fine) {
+  .glass-card {
+    backdrop-filter: url(#liquid-refract) blur(22px) saturate(170%) brightness(1.08);
+  }
+}
+
+/* ---------- Liquid motion ---------- */
+@keyframes liquid-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92, 0.86);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.03, 0.98);
+  }
+  80% {
+    transform: scale(0.99, 1.01);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes liquid-ripple {
+  from {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.55;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+@keyframes liquid-pulse {
+  0%,
+  100% {
+    border-radius: 50%;
+    transform: scale(1);
+  }
+  33% {
+    border-radius: 46% 54% 52% 48%;
+    transform: scale(1.06, 0.97);
+  }
+  66% {
+    border-radius: 54% 46% 48% 52%;
+    transform: scale(0.97, 1.05);
+  }
+}
+@keyframes liquid-page {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
+@utility liquid-in {
+  animation: liquid-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@utility liquid-pulse {
+  animation: liquid-pulse 1.6s ease-in-out infinite;
+}
+@utility liquid-page {
+  animation: liquid-page 0.7s ease-out both;
+}
+/* Sliding glass bubble behind the selected tab */
+@utility liquid-pill {
+  transition:
+    transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+    width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Every button squishes on press and springs back. */
+button:not(:disabled),
+a.liquid-press,
+[role="tab"] {
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-duration: 0.45s;
+  transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+button:not(:disabled):active,
+a.liquid-press:active,
+[role="tab"]:active {
+  transform: scale(0.93, 0.9);
+  transition-duration: 0.12s;
+}
+.liquid-ripple-host {
+  position: relative;
+  overflow: hidden;
+}
+.liquid-ripple {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: radial-gradient(circle, oklch(0.975 0.006 255.5 / 0.45), transparent 70%);
+  animation: liquid-ripple 0.65s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-card:hover {
+    transform: none;
+  }
+  .liquid-in,
+  .liquid-pulse,
+  .liquid-page,
+  .liquid-ripple {
+    animation: none !important;
+  }
+  .liquid-ripple {
+    display: none;
+  }
+  button:not(:disabled):active,
+  a.liquid-press:active,
+  [role="tab"]:active {
+    transform: none;
+  }
+  .liquid-pill {
+    transition: none;
   }
 }
 

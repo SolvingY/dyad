@@ -282,23 +282,31 @@ function DashboardInner() {
                   onSelect={setRegion}
                   className="h-[300px] w-full lg:h-auto lg:min-h-0 lg:flex-1"
                 />
-                <div className="flex items-center justify-center gap-2 border-t border-glass-line/60 px-4 py-2">
-                  {(["human", "center", "agent"] as const).map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setRegion(r)}
-                      aria-pressed={region === r}
-                      className={cn(
-                        "rounded-full px-3.5 py-1.5 text-[10px] uppercase tracking-[0.25em] text-foreground transition-colors",
-                        region === r && "glass-card",
-                        r === "human" && "text-human",
-                        r === "agent" && "text-agent",
-                      )}
-                    >
-                      {r === "center" ? "Dyad" : r}
-                    </button>
-                  ))}
+                <div className="flex items-center justify-center border-t border-glass-line/60 px-4 py-2">
+                  <div className="relative flex">
+                    <span
+                      aria-hidden="true"
+                      className="liquid-pill glass-card absolute inset-y-0 left-0 w-20 rounded-full"
+                      style={{
+                        transform: `translateX(${["human", "center", "agent"].indexOf(region) * 100}%)`,
+                      }}
+                    />
+                    {(["human", "center", "agent"] as const).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setRegion(r)}
+                        aria-pressed={region === r}
+                        className={cn(
+                          "relative z-10 w-20 rounded-full py-1.5 text-[10px] uppercase tracking-[0.25em] text-foreground",
+                          r === "human" && "text-human",
+                          r === "agent" && "text-agent",
+                        )}
+                      >
+                        {r === "center" ? "Dyad" : r}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </GlassCard>
               <div className="min-h-0 overflow-y-auto">

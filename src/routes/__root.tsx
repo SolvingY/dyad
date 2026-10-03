@@ -9,6 +9,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { LiquidLayer } from "@/components/dyad/liquid-layer";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -128,8 +129,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <LiquidLayer />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <div className="liquid-page">
+        <Outlet />
+      </div>
     </QueryClientProvider>
   );
 }
