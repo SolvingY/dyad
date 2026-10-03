@@ -15,3 +15,4 @@
 - Agent readiness is computed only by `refresh_agent_daily` in SQL; the client may explain the limiting factor using mirrored weights but never recomputes readiness. Why: single source of truth.
 - The brain GLB is served as a Lovable asset with a local Draco decoder in `public/draco/`; data changes only materials/uniforms, never geometry. Why: no runtime third-party CDN, no anatomy deformation.
 - "/" is the public landing page (signed-in visitors redirect to "/app"); the dashboard lives at "/app" and redirects signed-out visitors to "/auth". Why: marketing page and app stay separate.
+- Reuse `BrandLogo` for visible brand headers; keep the brain app icon for favicon/install surfaces and the branded banner for social previews. Why: one source keeps Dyad identity consistent without substituting the wide logo where a square icon is required.

@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { GlassCard } from "@/components/dyad/glass-card";
+import { BrandLogo } from "@/components/dyad/brand-logo";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
@@ -38,6 +39,9 @@ function ResetPassword() {
   return (
     <div className="dyad-ambient flex min-h-screen items-center justify-center px-6">
       <GlassCard tone="dyad" className="w-full max-w-md px-7 py-8">
+        <div className="mb-7 flex justify-center">
+          <BrandLogo className="h-12" />
+        </div>
         <h1 className="text-[11px] uppercase tracking-[0.35em] text-foreground">Set a new password</h1>
         <form onSubmit={submit} className="mt-6 flex flex-col gap-3">
           <input

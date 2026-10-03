@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Pause, type LucideIcon } from "lucide-react";
 import { Bot, HeartPulse, MessageSquare, ShieldCheck, Split, Undo2 } from "lucide-react";
+import { BrandLogo } from "@/components/dyad/brand-logo";
 
 const TITLE = "Dyad — For agents";
 const DESC =
@@ -26,9 +27,7 @@ function AgentsPage() {
   return (
     <div className="dyad-ambient relative min-h-dvh bg-background text-foreground">
       <header className="flex items-center justify-between px-6 pt-6 md:px-10">
-        <Link to="/" aria-label="Dyad home">
-          <img src="/logo-wordmark.png" alt="Dyad" width={900} height={194} className="dyad-logo-glow h-7 w-auto md:h-9" />
-        </Link>
+        <BrandLogo className="h-7 md:h-9" />
         <Link to="/auth" className="text-[11px] uppercase tracking-[0.25em] text-foreground hover:text-agent">
           Sign in
         </Link>

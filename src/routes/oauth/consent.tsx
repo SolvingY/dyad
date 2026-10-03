@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { GlassCard } from "@/components/dyad/glass-card";
+import { BrandLogo } from "@/components/dyad/brand-logo";
 import { Button } from "@/components/ui/button";
 import { setReturnTo } from "@/lib/return-to";
 
@@ -114,6 +115,9 @@ function ConsentPage() {
   return (
     <div className="dyad-ambient flex min-h-screen items-center justify-center px-6">
       <GlassCard tone="agent" className="flex w-full max-w-md flex-col gap-4 p-6">
+        <div className="flex justify-center pb-2">
+          <BrandLogo className="h-11" />
+        </div>
         <p className="text-xs uppercase tracking-[0.25em] text-foreground/50">Connect an app</p>
         {body}
       </GlassCard>

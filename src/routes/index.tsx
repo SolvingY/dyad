@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { DyadBrain, type BrainRegion } from "@/components/dyad/dyad-brain";
 import { toCenterVisual, type DyadVisualState } from "@/lib/dyad/vitals";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/dyad/brand-logo";
 
 const TITLE = "Dyad — Shared vitals for you and your agent";
 const DESC =
@@ -130,7 +131,7 @@ function Landing() {
         {/* HERO text */}
         <section className="pointer-events-none relative -mt-[100dvh] flex h-dvh flex-col">
           <header className="pointer-events-auto flex items-center justify-between px-6 pt-6 md:px-10">
-            <img src="/logo-wordmark.png" alt="Dyad" width={900} height={194} className="dyad-logo-glow h-7 w-auto md:h-9" />
+            <BrandLogo className="h-7 md:h-9" />
             <Link to="/auth" className="text-[11px] uppercase tracking-[0.25em] text-foreground hover:text-agent">
               Sign in
             </Link>

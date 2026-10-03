@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { BrandLogo } from "@/components/dyad/brand-logo";
 
 export const Route = createFileRoute("/privacy")({
   head: () => ({
@@ -15,6 +16,8 @@ export const Route = createFileRoute("/privacy")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:image", content: "https://dyadai.me/og-image.jpg" },
+      { name: "twitter:image", content: "https://dyadai.me/og-image.jpg" },
     ],
   }),
   component: PrivacyPage,
@@ -25,9 +28,7 @@ function PrivacyPage() {
     <div className="dyad-ambient relative min-h-screen overflow-hidden">
       <main className="relative mx-auto w-full max-w-3xl px-6 pb-24 pt-10 md:pt-14">
         <header className="flex flex-col gap-2">
-          <h1 className="font-display text-2xl font-light uppercase tracking-[0.45em] text-foreground">
-            Dyad
-          </h1>
+          <BrandLogo className="h-10" />
           <p className="text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
             Privacy Policy
           </p>

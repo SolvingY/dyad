@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { takeReturnTo } from "@/lib/return-to";
 import { authRedirectUrl, useAuth } from "@/hooks/use-auth";
 import { GlassCard } from "@/components/dyad/glass-card";
+import { BrandLogo } from "@/components/dyad/brand-logo";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/auth/")({
@@ -105,12 +106,9 @@ function AuthPage() {
   return (
     <div className="dyad-ambient flex min-h-screen items-center justify-center px-6 py-16">
       <div className="w-full max-w-md">
-        <Link
-          to="/"
-          className="block text-center font-display text-2xl font-light uppercase tracking-[0.45em] text-foreground"
-        >
-          Dyad
-        </Link>
+        <div className="flex justify-center">
+          <BrandLogo className="h-14 sm:h-16" />
+        </div>
         <p className="mt-2 text-center text-sm text-muted-foreground">
           Shared vitals for a human and their AI agent.
         </p>
