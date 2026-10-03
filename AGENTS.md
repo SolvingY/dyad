@@ -16,3 +16,4 @@
 - The brain GLB is served as a Lovable asset with a local Draco decoder in `public/draco/`; data changes only materials/uniforms, never geometry. Why: no runtime third-party CDN, no anatomy deformation.
 - "/" is the public landing page (signed-in visitors redirect to "/app"); the dashboard lives at "/app" and redirects signed-out visitors to "/auth". Why: marketing page and app stay separate.
 - Reuse `BrandLogo` for visible brand headers; keep the brain app icon for favicon/install surfaces and the branded banner for social previews. Why: one source keeps Dyad identity consistent without substituting the wide logo where a square icon is required.
+- All new accounts start pending; authorization is enforced by account approval and administrators manage access from `/admin`. Why: sign-in proves identity, while explicit approval controls product access.
