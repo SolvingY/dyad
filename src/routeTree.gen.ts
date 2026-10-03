@@ -17,6 +17,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as OuraCallbackRouteImport } from './routes/oura/callback'
+import { Route as ApiPublicPasswordResetRouteImport } from './routes/api/public/password-reset'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -58,6 +59,11 @@ const OuraCallbackRoute = OuraCallbackRouteImport.update({
   path: '/oura/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPasswordResetRoute = ApiPublicPasswordResetRouteImport.update({
+  id: '/api/public/password-reset',
+  path: '/api/public/password-reset',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/auth/callback': typeof AuthCallbackRoute
   '/oura/callback': typeof OuraCallbackRoute
   '/auth/': typeof AuthIndexRoute
+  '/api/public/password-reset': typeof ApiPublicPasswordResetRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/oura/callback': typeof OuraCallbackRoute
   '/auth': typeof AuthIndexRoute
+  '/api/public/password-reset': typeof ApiPublicPasswordResetRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/auth/callback': typeof AuthCallbackRoute
   '/oura/callback': typeof OuraCallbackRoute
   '/auth/': typeof AuthIndexRoute
+  '/api/public/password-reset': typeof ApiPublicPasswordResetRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/oura/callback'
     | '/auth/'
+    | '/api/public/password-reset'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/oura/callback'
     | '/auth'
+    | '/api/public/password-reset'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/oura/callback'
     | '/auth/'
+    | '/api/public/password-reset'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +144,7 @@ export interface RootRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
   OuraCallbackRoute: typeof OuraCallbackRoute
   AuthIndexRoute: typeof AuthIndexRoute
+  ApiPublicPasswordResetRoute: typeof ApiPublicPasswordResetRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -192,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OuraCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/password-reset': {
+      id: '/api/public/password-reset'
+      path: '/api/public/password-reset'
+      fullPath: '/api/public/password-reset'
+      preLoaderRoute: typeof ApiPublicPasswordResetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -204,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
   OuraCallbackRoute: OuraCallbackRoute,
   AuthIndexRoute: AuthIndexRoute,
+  ApiPublicPasswordResetRoute: ApiPublicPasswordResetRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
