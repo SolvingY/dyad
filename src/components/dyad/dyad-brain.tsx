@@ -331,6 +331,101 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
       });
       scene.add(new THREE.Points(pg, pm));
 
+      // Neural connections: nearby cortical points linked by lines, with a
+      // bright pulse traveling along each one and re-firing at random intervals.
+      const sampled: { x: number; y: number; z: number; side: number }[] = [];
+      for (let i = 0; i < pos.length / 3; i++) {
+        sampled.push({ x: pos[i * 3], y: pos[i * 3 + 1], z: pos[i * 3 + 2], side: sideAttr[i] });
+      }
+      const CONNECTIONS = 120;
+      const linePos: number[] = [];
+      const lineT: number[] = [];
+      const lineRand: number[] = [];
+      const lineSide: number[] = [];
+      let made = 0;
+      let guard = 0;
+      while (made < CONNECTIONS && guard++ < 8000 && sampled.length > 8) {
+        const a = sampled[Math.floor(Math.random() * sampled.length)];
+        // Prefer a nearby partner on the same side; ~1 in 6 crosses the midline.
+        const cross = made % 6 === 5;
+        let best: (typeof sampled)[number] | null = null;
+        let bestD = Infinity;
+        for (let tries = 0; tries < 24; tries++) {
+          const b = sampled[Math.floor(Math.random() * sampled.length)];
+          if (b === a) continue;
+          if (!cross && Math.abs(b.side - a.side) > 0.25) continue;
+          if (cross && Math.abs(b.side - a.side) < 0.5) continue;
+          const d = (b.x - a.x) ** 2 + (b.y - a.y) ** 2 + (b.z - a.z) ** 2;
+          if (d < bestD) {
+            bestD = d;
+            best = b;
+          }
+        }
+        if (!best) continue;
+        const r = Math.random();
+        const side = (a.side + best.side) / 2;
+        linePos.push(a.x, a.y, a.z, best.x, best.y, best.z);
+        lineT.push(0, 1);
+        lineRand.push(r, r);
+        lineSide.push(side, side);
+        made++;
+      }
+      const lg = new THREE.BufferGeometry();
+      lg.setAttribute("position", new THREE.Float32BufferAttribute(linePos, 3));
+      lg.setAttribute("aT", new THREE.Float32BufferAttribute(lineT, 1));
+      lg.setAttribute("aRand", new THREE.Float32BufferAttribute(lineRand, 1));
+      lg.setAttribute("aSide", new THREE.Float32BufferAttribute(lineSide, 1));
+      const lineUniforms = {
+        uTime: { value: 0 },
+        uRateH: { value: 0.4 },
+        uRateA: { value: 0.4 },
+        uBoostH: { value: 1 },
+        uBoostA: { value: 1 },
+      };
+      const lm = new THREE.ShaderMaterial({
+        uniforms: lineUniforms,
+        vertexShader: /* glsl */ `
+          attribute float aT;
+          attribute float aRand;
+          attribute float aSide;
+          uniform float uTime;
+          uniform float uRateH;
+          uniform float uRateA;
+          uniform float uBoostH;
+          uniform float uBoostA;
+          varying vec3 vColor;
+          varying float vAlpha;
+          void main() {
+            bool agent = aSide > 0.75;
+            bool human = aSide < 0.25;
+            float rate = agent ? uRateA : (human ? uRateH : (uRateH + uRateA) * 0.5);
+            float boost = agent ? uBoostA : (human ? uBoostH : 1.0);
+            // Pulse position travels 0 -> 1 along the line, then rests.
+            float cyc = fract(uTime * (0.12 + rate * 0.5) + aRand * 7.31);
+            float head = cyc * 1.6; // 1.0 of travel + 0.6 of rest
+            float d = abs(aT - head);
+            float pulse = (1.0 - smoothstep(0.0, 0.09, d)) * step(head, 1.0);
+            vec3 gold = vec3(0.96, 0.77, 0.09);
+            vec3 teal = vec3(0.0, 0.83, 0.78);
+            vec3 shared = vec3(0.62, 0.96, 0.85);
+            vColor = human ? gold : (agent ? teal : shared);
+            vAlpha = (0.05 + pulse * 0.85) * boost;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          varying vec3 vColor;
+          varying float vAlpha;
+          void main() {
+            gl_FragColor = vec4(vColor, vAlpha);
+          }
+        `,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      scene.add(new THREE.LineSegments(lg, lm));
+
       // Shared core: compares the two readiness values.
       const coreMat = new THREE.MeshBasicMaterial({
         color: shared.clone(), transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending,
