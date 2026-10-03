@@ -1,12 +1,26 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { GlassCard } from "@/components/dyad/glass-card";
 import { SyncInsightsCard } from "@/components/dyad/sync-insights-card";
 import { CheckinCard } from "@/components/dyad/checkin-card";
+import { AskDyadCard } from "@/components/dyad/ask-dyad-card";
 import { ReadinessRing } from "@/components/dyad/readiness-ring";
 import { cn } from "@/lib/utils";
+import { DyadBrain, type BrainRegion } from "@/components/dyad/dyad-brain";
+import { RegionPanel } from "@/components/dyad/brain-panel";
+import {
+  getDyadOperatingPosture,
+  toAgentVisual,
+  toAgentVitals,
+  toCenterVisual,
+  toHumanVisual,
+  toHumanVitals,
+  type AgentRow,
+  type DyadVisualState,
+  type OuraRow,
+} from "@/lib/dyad/vitals";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -29,39 +43,30 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
 });
 
-type OuraDay = {
-  day: string;
-  readiness_score: number | null;
-  sleep_score: number | null;
-  average_hrv: number | null;
-};
-type AgentDay = {
-  day: string;
-  readiness_score: number | null;
-  call_count: number | null;
-  error_rate: number | null;
-};
-
-// Loads the latest oura_daily and agent_daily rows for the signed-in user, and
-// runs oura-sync once so the human side is fresh.
+// Loads the newest 14 oura_daily and agent_daily rows for the signed-in user
+// (newest drives the display; the rest give each metric its own recent range),
+// and runs the existing oura-sync once so the human side is fresh.
 function useDyadData() {
   const { user } = useAuth();
-  const [oura, setOura] = useState<OuraDay | null>(null);
+  const [ouraRows, setOuraRows] = useState<OuraRow[]>([]);
   const [ouraConnected, setOuraConnected] = useState<boolean | null>(null);
-  const [agentDay, setAgentDay] = useState<AgentDay | null>(null);
+  const [agentRows, setAgentRows] = useState<AgentRow[]>([]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setOuraRows([]);
+      setAgentRows([]);
+      return;
+    }
     let cancelled = false;
 
     async function loadOura() {
       const { data } = await supabase
         .from("oura_daily")
-        .select("day, readiness_score, sleep_score, average_hrv")
+        .select("*")
         .order("day", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!cancelled) setOura(data);
+        .limit(14);
+      if (!cancelled) setOuraRows(data ?? []);
     }
 
     async function loadAgent() {
@@ -74,12 +79,11 @@ function useDyadData() {
       if (!agent) return;
       const { data } = await supabase
         .from("agent_daily")
-        .select("day, readiness_score, call_count, error_rate")
+        .select("*")
         .eq("agent_id", agent.id)
         .order("day", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!cancelled) setAgentDay(data);
+        .limit(14);
+      if (!cancelled) setAgentRows(data ?? []);
     }
 
     void loadOura();
@@ -123,7 +127,7 @@ function useDyadData() {
     };
   }, [user?.id]);
 
-  return { user, oura, ouraConnected, agentDay };
+  return { user, ouraRows, ouraConnected, agentRows };
 }
 
 async function connectOura() {
@@ -132,8 +136,26 @@ async function connectOura() {
 }
 
 function Dashboard() {
-  const { user, oura, ouraConnected, agentDay } = useDyadData();
+  const { user, ouraRows, ouraConnected, agentRows } = useDyadData();
   const signedOut = user ? undefined : "Sign in to see your data";
+  const [region, setRegion] = useState<BrainRegion>("center");
+
+  const human = useMemo(() => toHumanVitals(ouraRows[0]), [ouraRows]);
+  const agent = useMemo(() => toAgentVitals(agentRows[0]), [agentRows]);
+  const posture = useMemo(
+    () => getDyadOperatingPosture(human?.readiness ?? null, agent?.readiness ?? null),
+    [human, agent],
+  );
+  const visual = useMemo<DyadVisualState>(
+    () => ({
+      human: toHumanVisual(human, ouraRows),
+      agent: toAgentVisual(agent, agentRows),
+      center: toCenterVisual(human?.readiness ?? null, agent?.readiness ?? null),
+    }),
+    [human, agent, ouraRows, agentRows],
+  );
+  const oura = ouraRows[0] ?? null;
+  const agentDay = agentRows[0] ?? null;
 
   return (
     <div className="dyad-ambient relative min-h-screen overflow-hidden">
@@ -155,7 +177,43 @@ function Dashboard() {
       <main className="relative mx-auto w-full max-w-6xl px-6 pb-20 pt-10 md:pt-14">
         <Header />
 
-        <div className="mt-12 grid gap-6 md:mt-16 lg:grid-cols-[1fr_1.15fr_1fr]">
+        <section aria-label="Dyad brain" className="mt-10 grid gap-6 md:mt-14 lg:grid-cols-[1.5fr_1fr]">
+          <GlassCard tone="dyad" className="overflow-hidden p-0">
+            <DyadBrain
+              visual={visual}
+              selected={region}
+              onSelect={setRegion}
+              className="h-[360px] w-full sm:h-[440px]"
+            />
+            <div className="flex items-center justify-center gap-2 border-t border-glass-line/60 px-4 py-3">
+              {(["human", "center", "agent"] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRegion(r)}
+                  aria-pressed={region === r}
+                  className={cn(
+                    "rounded-full px-3.5 py-1.5 text-[10px] uppercase tracking-[0.25em] transition-colors",
+                    region === r ? "glass-card text-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {r === "center" ? "Dyad" : r}
+                </button>
+              ))}
+            </div>
+          </GlassCard>
+          <div className="min-w-0">
+            {user ? (
+              <RegionPanel region={region} human={human} agent={agent} posture={posture} />
+            ) : (
+              <GlassCard tone="dyad" className="px-5 py-6 text-sm text-muted-foreground">
+                Sign in to light up the brain with your Oura and agent vitals.
+              </GlassCard>
+            )}
+          </div>
+        </section>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1.15fr_1fr]">
           <section aria-label="Human" className="flex flex-col gap-5">
             <ColumnHeader title="Human" dotClassName="bg-human" glowClassName="shadow-[0_0_12px_var(--human)]" />
             <ReadinessCard
@@ -190,8 +248,16 @@ function Dashboard() {
               dotClassName="bg-gradient-to-br from-human to-agent"
               glowClassName="shadow-[0_0_12px_var(--glow-dyad)]"
             />
-            <ReadinessCard tone="dyad" label="Alignment" />
+            <ReadinessCard
+              tone="dyad"
+              label="Today's posture"
+              caption={
+                signedOut ??
+                (posture ? posture.interruption.replace("_", " ").toLowerCase() : "Needs both readiness scores")
+              }
+            />
             <CheckinCard />
+            <AskDyadCard />
             <SyncInsightsCard />
           </section>
 
@@ -225,9 +291,6 @@ function Dashboard() {
           </a>
         </footer>
 
-        <p className="mt-6 text-center text-[11px] uppercase tracking-[0.3em] text-muted-foreground/60">
-          Shell build · schema pending
-        </p>
       </main>
     </div>
   );
