@@ -15,13 +15,15 @@ interface ReadinessRingProps {
   tone: Tone;
   className?: string;
   size?: number;
+  /** 0–100. When set, draws a value arc; otherwise the ring stays empty. */
+  value?: number | null | undefined;
 }
 
 /**
- * Empty readiness ring gauge — a luminous track with a slow pulsing halo.
- * No value arc: data awaits the backend schema.
+ * Readiness ring gauge — a luminous track with a slow pulsing halo, plus a
+ * value arc when a value is given.
  */
-export function ReadinessRing({ tone, className, size = 132 }: ReadinessRingProps) {
+export function ReadinessRing({ tone, className, size = 132, value }: ReadinessRingProps) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const gradientId = `dyad-ring-gradient-${uid}`;
   const stroke =
@@ -72,12 +74,25 @@ export function ReadinessRing({ tone, className, size = 132 }: ReadinessRingProp
           stroke="var(--glass-line)"
           strokeWidth="1.5"
         />
+
+        {value != null && (
+          <circle
+            cx="66"
+            cy="66"
+            r={RADIUS}
+            stroke={stroke}
+            strokeWidth="3"
+            strokeDasharray={`${(CIRCUMFERENCE * Math.min(Math.max(value, 0), 100)) / 100} ${CIRCUMFERENCE}`}
+            strokeLinecap="round"
+            transform="rotate(-90 66 66)"
+          />
+        )}
       </svg>
       <span
         className="pointer-events-none absolute font-display text-3xl font-extralight text-foreground/45"
         aria-hidden="true"
       >
-        —
+        {value == null && "—"}
       </span>
     </div>
   );
