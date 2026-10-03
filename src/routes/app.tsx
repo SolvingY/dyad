@@ -360,6 +360,19 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
     { label: "Correction rate", value: pct(agentDay?.correction_rate) },
     { label: "Error rate", value: pct(agentDay?.error_rate) },
     { label: "Calls", value: agentDay?.call_count },
+    {
+      label: "Latency",
+      value: agentDay?.baseline_latency_ms == null ? null : `${Math.round(agentDay.baseline_latency_ms)} ms`,
+    },
+    { label: "Retry rate", value: pct(agentDay?.retry_rate) },
+    {
+      label: "Tokens",
+      value: agentDay?.total_tokens == null ? null : Number(agentDay.total_tokens).toLocaleString(),
+    },
+    {
+      label: "Context fill",
+      value: agentDay?.avg_context_fill == null ? null : pct(agentDay.avg_context_fill),
+    },
   ];
 
   return (
