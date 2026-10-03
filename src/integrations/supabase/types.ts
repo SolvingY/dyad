@@ -380,57 +380,6 @@ export type Database = {
         }
         Relationships: []
       }
-      thread_messages: {
-        Row: {
-          agent_id: string
-          content: string
-          created_at: string
-          energy: number | null
-          event_id: string | null
-          id: string
-          kind: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          agent_id: string
-          content: string
-          created_at?: string
-          energy?: number | null
-          event_id?: string | null
-          id?: string
-          kind: string
-          role: string
-          user_id: string
-        }
-        Update: {
-          agent_id?: string
-          content?: string
-          created_at?: string
-          energy?: number | null
-          event_id?: string | null
-          id?: string
-          kind?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "thread_messages_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "thread_messages_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "agent_events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
