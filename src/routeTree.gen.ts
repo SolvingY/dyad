@@ -19,6 +19,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiSpeakRouteImport } from './routes/api/speak'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as OauthConsentRouteImport } from './routes/oauth/consent'
 import { Route as OuraCallbackRouteImport } from './routes/oura/callback'
 import { Route as ApiPublicPasswordResetRouteImport } from './routes/api/public/password-reset'
 
@@ -72,6 +73,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OauthConsentRoute = OauthConsentRouteImport.update({
+  id: '/oauth/consent',
+  path: '/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OuraCallbackRoute = OuraCallbackRouteImport.update({
   id: '/oura/callback',
   path: '/oura/callback',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/api/speak': typeof ApiSpeakRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/oauth/consent': typeof OauthConsentRoute
   '/oura/callback': typeof OuraCallbackRoute
   '/auth/': typeof AuthIndexRoute
   '/api/public/password-reset': typeof ApiPublicPasswordResetRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/api/speak': typeof ApiSpeakRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/oauth/consent': typeof OauthConsentRoute
   '/oura/callback': typeof OuraCallbackRoute
   '/auth': typeof AuthIndexRoute
   '/api/public/password-reset': typeof ApiPublicPasswordResetRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/api/speak': typeof ApiSpeakRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/oauth/consent': typeof OauthConsentRoute
   '/oura/callback': typeof OuraCallbackRoute
   '/auth/': typeof AuthIndexRoute
   '/api/public/password-reset': typeof ApiPublicPasswordResetRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/speak'
     | '/auth/callback'
+    | '/oauth/consent'
     | '/oura/callback'
     | '/auth/'
     | '/api/public/password-reset'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/speak'
     | '/auth/callback'
+    | '/oauth/consent'
     | '/oura/callback'
     | '/auth'
     | '/api/public/password-reset'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/speak'
     | '/auth/callback'
+    | '/oauth/consent'
     | '/oura/callback'
     | '/auth/'
     | '/api/public/password-reset'
@@ -181,6 +193,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ApiSpeakRoute: typeof ApiSpeakRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  OauthConsentRoute: typeof OauthConsentRoute
   OuraCallbackRoute: typeof OuraCallbackRoute
   AuthIndexRoute: typeof AuthIndexRoute
   ApiPublicPasswordResetRoute: typeof ApiPublicPasswordResetRoute
@@ -258,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/oauth/consent': {
+      id: '/oauth/consent'
+      path: '/oauth/consent'
+      fullPath: '/oauth/consent'
+      preLoaderRoute: typeof OauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/oura/callback': {
       id: '/oura/callback'
       path: '/oura/callback'
@@ -285,6 +305,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ApiSpeakRoute: ApiSpeakRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  OauthConsentRoute: OauthConsentRoute,
   OuraCallbackRoute: OuraCallbackRoute,
   AuthIndexRoute: AuthIndexRoute,
   ApiPublicPasswordResetRoute: ApiPublicPasswordResetRoute,

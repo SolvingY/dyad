@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { takeReturnTo } from "@/lib/return-to";
 
 export const Route = createFileRoute("/auth/callback")({
   head: () => ({
@@ -24,7 +25,7 @@ function AuthCallback() {
 
   useEffect(() => {
     let cancelled = false;
-    const finish = () => !cancelled && navigate({ to: "/app", replace: true });
+    const finish = () => !cancelled && navigate({ href: takeReturnTo(), replace: true });
 
     (async () => {
       const url = new URL(window.location.href);

@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { takeReturnTo } from "@/lib/return-to";
 import { authRedirectUrl, useAuth } from "@/hooks/use-auth";
 import { GlassCard } from "@/components/dyad/glass-card";
 import { cn } from "@/lib/utils";
@@ -41,7 +42,7 @@ function AuthPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/app", replace: true });
+    if (!loading && user) navigate({ href: takeReturnTo(), replace: true });
   }, [user, loading, navigate]);
 
   async function oauth(provider: "google" | "github") {
