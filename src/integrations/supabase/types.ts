@@ -436,6 +436,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_checkin_cron_secret: {
+        Args: { p_secret: string }
+        Returns: boolean
+      }
       mark_event_corrected: {
         Args: { p_corrected?: boolean; p_event_id: string }
         Returns: undefined
