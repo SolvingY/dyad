@@ -125,6 +125,9 @@ function AccountChip() {
     <div className={chip}>
       <span className="size-1.5 rounded-full bg-agent shadow-[0_0_8px_var(--agent)]" />
       <span className="max-w-[12rem] truncate normal-case tracking-normal">{user.email}</span>
+      <Link to="/agent" className="ml-1 hover:text-foreground">
+        Agent
+      </Link>
       <button
         type="button"
         className="ml-1 hover:text-foreground"
