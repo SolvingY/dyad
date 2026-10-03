@@ -92,7 +92,7 @@ function Landing() {
     <div className="dyad-ambient relative min-h-dvh bg-background text-foreground">
       <div className="relative">
         {/* Brain stage: sticky through the hero and "Two sets of vitals" on desktop */}
-        <div className="relative h-dvh overflow-hidden lg:sticky lg:top-0">
+        <div className="relative h-dvh overflow-hidden bg-background lg:sticky lg:top-0">
           {rich && <Particles />}
           <div
             className="absolute inset-0 flex items-center justify-center mix-blend-screen"
