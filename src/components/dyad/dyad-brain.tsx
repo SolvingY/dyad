@@ -419,8 +419,8 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         const hPulse = h ? 1 + 0.03 * Math.sin(t * Math.PI * 2 * h.pulseHz) : 1;
         const hThroughput = h ? 0.9 + 0.2 * h.throughput : 1;
         mats.human.emissiveIntensity =
-          (0.16 + 0.5 * smooth.h) * hFlicker * hPulse * hThroughput * (humanSel ? 1.45 : 1);
-        mats.human.opacity = (0.62 + 0.16 * smooth.h) * (agentSel ? 0.42 : 1) * (humanSel ? 1.15 : 1);
+          (0.16 + 0.5 * smooth.h) * hFlicker * hPulse * hThroughput * (humanSel ? 1.7 : 1);
+        mats.human.opacity = (0.62 + 0.16 * smooth.h) * (agentSel ? 0.3 : 1) * (humanSel ? 1.2 : 1);
         tmpColor.copy(gold).lerp(ember, (h?.warmth ?? 0) * 0.35).multiplyScalar(0.5);
         mats.human.emissive.copy(tmpColor);
 
@@ -428,17 +428,17 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         const fresh = a?.freshness ?? 0.5;
         const load = a?.load ?? 0;
         mats.agent.emissiveIntensity =
-          (0.13 + 0.4 * smooth.a + 0.12 * fresh) * (1 - load * 0.12) * (agentSel ? 1.45 : 1);
+          (0.13 + 0.4 * smooth.a + 0.12 * fresh) * (1 - load * 0.12) * (agentSel ? 1.7 : 1);
         mats.agent.opacity =
-          (0.55 + 0.14 * fresh + 0.08 * smooth.a) * (humanSel ? 0.42 : 1) * (agentSel ? 1.15 : 1);
+          (0.55 + 0.14 * fresh + 0.08 * smooth.a) * (humanSel ? 0.3 : 1) * (agentSel ? 1.2 : 1);
         mats.median.emissiveIntensity = 0.26 + 0.3 * v.center.brightness + (sel === "center" ? 0.15 : 0);
 
         // Selection as transparency: the chosen side fills in, everything else recedes.
-        mats.humanDeep.opacity = 0.12 * (agentSel ? 0.3 : humanSel ? 1.6 : 1);
-        mats.agentDeep.opacity = 0.12 * (humanSel ? 0.3 : agentSel ? 1.6 : 1);
-        mats.median.opacity = 0.64 * (sideSel ? 0.45 : 1);
-        mats.medianDeep.opacity = 0.11 * (sideSel ? 0.5 : 1);
-        mats.brainstem.opacity = 0.4 * (sideSel ? 0.55 : 1);
+        mats.humanDeep.opacity = 0.12 * (agentSel ? 0.22 : humanSel ? 1.8 : 1);
+        mats.agentDeep.opacity = 0.12 * (humanSel ? 0.22 : agentSel ? 1.8 : 1);
+        mats.median.opacity = 0.64 * (sideSel ? 0.35 : 1);
+        mats.medianDeep.opacity = 0.11 * (sideSel ? 0.4 : 1);
+        mats.brainstem.opacity = 0.4 * (sideSel ? 0.45 : 1);
 
         // Activity field
         uniforms.uTime.value = t;
