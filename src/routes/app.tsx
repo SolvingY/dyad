@@ -153,7 +153,29 @@ function Dashboard() {
 
 function DashboardInner() {
   const d = useDyadData();
-  const { oura, agentDay } = d;
+  const { ouraRows, agentRows } = d;
+  const oura = ouraRows[0] ?? null;
+  const agentDay = agentRows.find((r) => r.day === localDate()) ?? null;
+  const latestAgent = agentRows[0] ?? null;
+  const [region, setRegion] = useState<BrainRegion>("center");
+
+  const human = useMemo(() => toHumanVitals(oura), [oura]);
+  const agent = useMemo(() => toAgentVitals(latestAgent), [latestAgent]);
+  const posture = useMemo(
+    () => getDyadOperatingPosture(human?.readiness ?? null, agent?.readiness ?? null),
+    [human, agent],
+  );
+  const visual = useMemo<DyadVisualState>(
+    () => ({
+      human: toHumanVisual(human, ouraRows),
+      agent: toAgentVisual(agent, agentRows),
+      center: toCenterVisual(human?.readiness ?? null, agent?.readiness ?? null),
+    }),
+    [human, agent, ouraRows, agentRows],
+  );
+  const youLit = region === "human" || region === "center";
+  const agentLit = region === "agent" || region === "center";
+  const highlight = "ring-1 ring-offset-0 rounded-[inherit]";
 
   const youStats = [
     { label: "Sleep", value: oura?.sleep_score },
@@ -172,18 +194,19 @@ function DashboardInner() {
   ];
 
   return (
-    <div className="dyad-ambient relative h-dvh overflow-hidden">
-      <main className="relative mx-auto flex h-full w-full max-w-7xl flex-col px-4 pb-4 pt-4 md:px-6">
+    <div className="dyad-ambient relative min-h-dvh">
+      <main className="relative mx-auto flex w-full max-w-7xl flex-col px-4 pb-10 pt-4 md:px-6">
         <Header />
 
-        {/* Phone: compact ring strip */}
-        <div className="mt-3 grid grid-cols-2 gap-3 lg:hidden">
-          <MiniRing tone="human" label="You" value={oura?.readiness_score} />
-          <MiniRing tone="agent" label="Agent" value={agentDay?.readiness_score} />
-        </div>
-
-        <div className="mt-3 grid min-h-0 flex-1 gap-5 lg:mt-6 lg:grid-cols-[17rem_1fr_17rem]">
-          <aside aria-label="You" className="hidden min-h-0 flex-col lg:flex">
+        <div className="mt-3 flex flex-col gap-5 lg:mt-6 lg:grid lg:h-[calc(100dvh-6rem)] lg:min-h-0 lg:grid-cols-[17rem_1fr_17rem]">
+          <aside
+            aria-label="You"
+            className={cn(
+              "order-2 flex min-h-0 flex-col rounded-2xl transition-all lg:order-none",
+              region === "human" && "shadow-[0_0_28px_var(--human)]",
+              !youLit && "opacity-50",
+            )}
+          >
             <SideCard
               tone="human"
               title="You"
