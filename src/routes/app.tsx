@@ -81,6 +81,7 @@ function useDyadData() {
     const { data: agent, error: agentErr } = await supabase
       .from("agents")
       .select("id")
+      .eq("source", "builtin")
       .order("created_at")
       .limit(1)
       .maybeSingle();

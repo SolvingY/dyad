@@ -6,6 +6,7 @@ import { GlassCard } from "@/components/dyad/glass-card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConnectedAgents } from "@/components/dyad/connected-agents";
 
 // Test page for the agent: create an agent, send one message through the
 // agent-call edge function, and see the reply and the agent_events row it logged.
@@ -34,6 +35,7 @@ function AgentPage() {
     supabase
       .from("agents")
       .select("id, name")
+      .eq("source", "builtin")
       .order("created_at")
       .limit(1)
       .maybeSingle()
@@ -144,6 +146,7 @@ function AgentPage() {
             <pre className="overflow-x-auto text-xs">{JSON.stringify(event, null, 2)}</pre>
           </GlassCard>
         )}
+        {user && <ConnectedAgents />}
       </main>
     </div>
   );
