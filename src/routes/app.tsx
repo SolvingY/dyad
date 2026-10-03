@@ -49,7 +49,7 @@ function useDyadData() {
   const loadOura = useCallback(async () => {
     const { data, error } = await supabase
       .from("oura_daily")
-      .select("day, readiness_score, sleep_score, average_hrv, resting_heart_rate, steps, updated_at")
+      .select("*")
       .order("day", { ascending: false })
       .limit(1)
       .maybeSingle();
