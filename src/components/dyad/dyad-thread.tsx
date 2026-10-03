@@ -309,14 +309,14 @@ export function DyadThread() {
           ) : m.role === "human" ? (
             <div
               key={m.id}
-              className="max-w-[85%] self-end rounded-2xl rounded-br-sm border border-human/30 bg-human/10 px-4 py-2.5"
+              className="liquid-in max-w-[85%] self-end rounded-[1.4rem] rounded-br-md border border-human/40 bg-human/15 px-4 py-2.5 shadow-[inset_0_1px_0_0_var(--glass-line-luminous)] backdrop-blur-xl"
             >
               <p className="whitespace-pre-wrap text-sm text-foreground">{m.content}</p>
             </div>
           ) : (
             <div
               key={m.id}
-              className="max-w-[90%] self-start rounded-2xl rounded-bl-sm border border-agent/30 bg-agent/10 px-4 py-2.5"
+              className="liquid-in max-w-[90%] self-start rounded-[1.4rem] rounded-bl-md border border-agent/40 bg-agent/15 px-4 py-2.5 shadow-[inset_0_1px_0_0_var(--glass-line-luminous)] backdrop-blur-xl"
             >
               {(m.kind === "checkin" || externalName(m)) && (
                 <p className="mb-1 text-[10px] uppercase tracking-[0.2em] text-agent">
@@ -379,7 +379,7 @@ export function DyadThread() {
             className={cn(
               "flex size-14 shrink-0 items-center justify-center rounded-full border transition-colors",
               listening
-                ? "border-human bg-human/20 text-human shadow-[0_0_18px_var(--human)]"
+                ? "liquid-pulse border-human bg-human/20 text-human shadow-[0_0_18px_var(--human)]"
                 : "border-glass-line-luminous text-foreground hover:text-human",
             )}
           >
