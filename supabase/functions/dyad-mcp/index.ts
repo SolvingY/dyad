@@ -462,14 +462,31 @@ async function callerFromOAuth(admin: Admin, token: string): Promise<Caller | nu
       .maybeSingle();
   let { data: agent } = await find();
   if (!agent) {
+    // Apps like claude.ai register a new OAuth client each time they reconnect.
+    // Treat the same app name as the same agent, so its conversation and
+    // vitals carry over.
     const { data: client } = await admin.auth.admin.oauth.getClient(clientId);
-    await admin.from("agents").insert({
-      user_id: userId,
-      name: client?.client_name || "Connected app",
-      source: "external",
-      oauth_client_id: clientId,
-    });
-    // Re-read rather than use the insert result, in case a parallel request won.
+    const name = client?.client_name || "Connected app";
+    const { data: same } = await admin
+      .from("agents")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("name", name)
+      .not("oauth_client_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (same) {
+      await admin.from("agents").update({ oauth_client_id: clientId }).eq("id", same.id);
+    } else {
+      await admin.from("agents").insert({
+        user_id: userId,
+        name,
+        source: "external",
+        oauth_client_id: clientId,
+      });
+    }
+    // Re-read rather than use the write result, in case a parallel request won.
     ({ data: agent } = await find());
   }
   return agent ? { agentId: agent.id, userId } : null;
