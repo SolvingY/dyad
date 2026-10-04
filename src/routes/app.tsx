@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { GlassCard } from "@/components/dyad/glass-card";
@@ -10,7 +10,7 @@ import { DyadBrain, type BrainRegion } from "@/components/dyad/dyad-brain";
 import { RegionPanel } from "@/components/dyad/brain-panel";
 import { BrandLogo } from "@/components/dyad/brand-logo";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import { Check, ChevronDown, Menu } from "lucide-react";
 import { NotificationBell } from "@/components/dyad/notification-bell";
 import { HeartRateLine } from "@/components/dyad/heart-rate-line";
 import { useServerFn } from "@tanstack/react-start";
