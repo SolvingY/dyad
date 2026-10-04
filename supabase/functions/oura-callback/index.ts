@@ -11,6 +11,7 @@ import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, getCallerId } from "../_shared/auth.ts";
 import { OURA_TOKEN_URL } from "../_shared/oura.ts";
 import { verifyState } from "../_shared/oura-state.ts";
+import { withEdgeHealth } from "../_shared/edge-health.ts";
 
 type OuraTokenResponse = {
   access_token?: string;
@@ -19,13 +20,14 @@ type OuraTokenResponse = {
   scope?: string;
 };
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeHealth("oura-callback", async (req, health) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   const admin = adminClient();
   const userId = await getCallerId(req, admin);
   if (!userId) return json({ error: "not_signed_in" }, 401);
+  health.userId = userId;
 
   let code: unknown, state: unknown;
   try {
@@ -88,4 +90,4 @@ Deno.serve(async (req) => {
   }
 
   return json({ ok: true });
-});
+}));

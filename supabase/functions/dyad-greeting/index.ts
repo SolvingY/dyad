@@ -9,18 +9,20 @@ import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, getCallerId } from "../_shared/auth.ts";
 import { chicagoParts } from "../_shared/chicago.ts";
 import { THREAD_SYSTEM } from "../_shared/thread-prompt.ts";
+import { withEdgeHealth } from "../_shared/edge-health.ts";
 
 const PROMPT = `The human just opened Dyad for the first time today. Write a short greeting
 (2-3 sentences) about today: cite one of their Oura metrics and one of your own vitals, if you have
 them. Ask at most one question. Don't mention that this is a greeting.`;
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeHealth("dyad-greeting", async (req, health) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   const admin = adminClient();
   const userId = await getCallerId(req, admin);
   if (!userId) return json({ error: "not_signed_in" }, 401);
+  health.userId = userId;
 
   const { data: agent } = await admin
     .from("agents")
@@ -31,6 +33,7 @@ Deno.serve(async (req) => {
     .limit(1)
     .maybeSingle();
   if (!agent) return json({ greeted: false, reason: "no_agent" });
+  health.agentIds = [agent.id];
 
   // Claim today. The update only matches if nobody greeted today yet, so two
   // tabs loading at once produce one greeting.
@@ -57,7 +60,7 @@ Deno.serve(async (req) => {
     admin
       .from("agent_daily")
       .select(
-        "day, readiness_score, freshness_score, error_rate, error_rate_deviation, retry_rate, correction_rate, cache_hit_rate, baseline_latency_ms, latency_variability_ms, calls_per_hour, call_count, avg_context_fill",
+        "day, readiness_score, freshness_score, error_rate, error_rate_deviation, retry_rate, correction_rate, cache_hit_rate, baseline_latency_ms, latency_variability_ms, calls_per_hour, call_count, avg_context_fill, function_success_rate, function_failure_count, function_latency_ms",
       )
       .eq("agent_id", agent.id)
       .order("day", { ascending: false })
@@ -109,4 +112,4 @@ Deno.serve(async (req) => {
     return json({ error: "save_failed" }, 500);
   }
   return json({ greeted: true });
-});
+}));

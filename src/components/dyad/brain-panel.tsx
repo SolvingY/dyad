@@ -96,6 +96,9 @@ export function AgentPanel({ v }: { v: AgentVitals | null }) {
           <Row label="Correction rate" value={fmt(v.correctionRate, pct)} />
           <Row label="Retry rate" value={fmt(v.retryRate, pct)} />
           <Row label="Context fill" value={fmt(v.contextFill, pct)} />
+          <Row label="Function success" value={fmt(v.functionSuccessRate, pct)} />
+          <Row label="Function failures" value={fmt(v.functionFailureCount, int)} />
+          <Row label="Function response" value={fmt(v.functionLatencyMs, (n) => `${int(n)} ms`)} />
         </dl>
       )}
       {v && (
@@ -129,7 +132,7 @@ export function DyadPanel({
         ? "Agent capacity higher"
         : "Human capacity higher";
   return (
-    <GlassCard tone="dyad" className="h-full min-h-0 overflow-hidden px-4 py-3 hover:transform-none">
+    <GlassCard tone="dyad" className="h-auto min-h-full px-4 py-3 hover:transform-none">
       <span aria-hidden="true" className="dyad-gradient-line absolute inset-x-6 top-0 h-px" />
       <Title dot="bg-gradient-to-br from-human to-agent" sub={posture ? posture.interruption.replace("_", " ") : undefined}>
         Dyad

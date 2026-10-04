@@ -13,8 +13,9 @@ import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, getCallerId } from "../_shared/auth.ts";
 import { OURA_AUTHORIZE_URL, OURA_SCOPES, ouraRedirectUriFromOrigin } from "../_shared/oura.ts";
 import { signState } from "../_shared/oura-state.ts";
+import { withEdgeHealth } from "../_shared/edge-health.ts";
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeHealth("oura-auth-start", async (req, health) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "GET" && req.method !== "POST") {
     return json({ error: "method_not_allowed" }, 405);
@@ -22,6 +23,7 @@ Deno.serve(async (req) => {
 
   const userId = await getCallerId(req, adminClient());
   if (!userId) return json({ error: "not_signed_in" }, 401);
+  health.userId = userId;
 
   const redirectUri = ouraRedirectUriFromOrigin(req.headers.get("Origin"));
   if (!redirectUri) return json({ error: "bad_origin" }, 400);
@@ -40,4 +42,4 @@ Deno.serve(async (req) => {
   url.searchParams.set("state", await signState(userId, redirectUri));
 
   return json({ url: url.toString() });
-});
+}));

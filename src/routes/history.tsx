@@ -150,6 +150,9 @@ function Trends() {
     { label: "Retry rate", points: chron(agentRows).map((r) => ({ day: r.day, v: r.retry_rate })), format: pct },
     { label: "Tokens", points: chron(agentRows).map((r) => ({ day: r.day, v: r.total_tokens })), format: int },
     { label: "Context fill", points: chron(agentRows).map((r) => ({ day: r.day, v: r.avg_context_fill })), format: pct },
+    { label: "Function success", points: chron(agentRows).map((r) => ({ day: r.day, v: r.function_success_rate })), format: pct },
+    { label: "Function failures", points: chron(agentRows).map((r) => ({ day: r.day, v: r.function_failure_count })), format: int },
+    { label: "Function response time", points: chron(agentRows).map((r) => ({ day: r.day, v: r.function_latency_ms })), format: ms },
   ];
 
   const range = (rows: { day: string }[]) => {

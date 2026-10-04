@@ -20,9 +20,11 @@ export const FRESHNESS_WINDOW_HOURS = 72;
  * recompute readiness itself. Keep in sync with the SQL function.
  */
 export const AGENT_READINESS_WEIGHTS = {
-  freshness: 0.3,
-  correction: 0.25,
-  error: 0.2,
-  contextFill: 0.15,
+  freshness: 0.25,
+  correction: 0.2,
+  error: 0.15,
+  contextFill: 0.1,
   retry: 0.1,
+  functionSuccess: 0.15,
+  functionLatency: 0.05,
 } as const;
