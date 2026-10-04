@@ -48,6 +48,9 @@ export type AgentVitals = {
   correctionRate: number | null; // fraction
   retryRate: number | null; // fraction
   contextFill: number | null; // fraction
+  functionSuccessRate: number | null; // fraction
+  functionFailureCount: number | null;
+  functionLatencyMs: number | null;
 };
 
 const num = (v: number | string | null | undefined): number | null => {
@@ -94,6 +97,9 @@ export function toAgentVitals(row: AgentRow | null | undefined): AgentVitals | n
     correctionRate: num(row.correction_rate),
     retryRate: num(row.retry_rate),
     contextFill: num(row.avg_context_fill),
+    functionSuccessRate: num(row.function_success_rate),
+    functionFailureCount: num(row.function_failure_count),
+    functionLatencyMs: num(row.function_latency_ms),
   };
 }
 
