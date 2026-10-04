@@ -11,6 +11,8 @@ import { RegionPanel } from "@/components/dyad/brain-panel";
 import { BrandLogo } from "@/components/dyad/brand-logo";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
+import { NotificationBell } from "@/components/dyad/notification-bell";
+import { HeartRateLine } from "@/components/dyad/heart-rate-line";
 import { useServerFn } from "@tanstack/react-start";
 import { getMyAccess } from "@/lib/account-approval.functions";
 import {
@@ -456,6 +458,13 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
                           ? "Oura not connected"
                           : "Checking Oura…"}
                     </div>
+                    {d.ouraConnected && (
+                      <HeartRateLine
+                        refreshKey={d.lastSync}
+                        restingHr={oura?.resting_heart_rate}
+                        onReconnect={connectOura}
+                      />
+                    )}
                     <p>
                       Last sync{" "}
                       {d.lastSync
@@ -618,13 +627,17 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
 }
 
 function Header({ isAdmin, picker }: { isAdmin: boolean; picker?: React.ReactNode }) {
+  const { user } = useAuth();
   return (
     <header className="flex items-center justify-between gap-4">
       <h1 className="flex shrink-0">
         <BrandLogo className="h-7 md:h-9" />
       </h1>
       {picker}
-      <AccountMenu isAdmin={isAdmin} />
+      <div className="flex items-center gap-2">
+        {user && <NotificationBell userId={user.id} />}
+        <AccountMenu isAdmin={isAdmin} />
+      </div>
     </header>
   );
 }
@@ -657,6 +670,8 @@ function AccountMenu({ isAdmin }: { isAdmin: boolean }) {
         </SheetHeader>
         <nav className="flex flex-col gap-1" onClick={() => setOpen(false)}>
           <Link to="/history" className={item}>Trends</Link>
+          <Link to="/conversations" className={item}>Conversations</Link>
+          <Link to="/reminders" className={item}>Reminders</Link>
           <Link to="/agent" className={cn(item, "text-agent")}>Connect Your Agent</Link>
           <a href="/dyad-walkthrough.html" target="_blank" rel="noopener noreferrer" className={item}>Walkthrough</a>
           {isAdmin && <Link to="/admin" className={item}>Approvals</Link>}

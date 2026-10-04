@@ -1,8 +1,9 @@
 export const OURA_AUTHORIZE_URL = "https://cloud.ouraring.com/oauth/authorize";
 export const OURA_TOKEN_URL = "https://api.ouraring.com/oauth/token";
 
-// `daily` covers daily_readiness, daily_sleep, daily_activity and sleep.
-export const OURA_SCOPES = ["daily"];
+// `daily` covers daily_readiness, daily_sleep, daily_activity and sleep;
+// `heartrate` the 5-minute heart rate series; `workout` logged workouts.
+export const OURA_SCOPES = ["daily", "heartrate", "workout"];
 
 // Oura sends the user back to this page in the app, which forwards the code
 // to oura-callback together with the user's session.

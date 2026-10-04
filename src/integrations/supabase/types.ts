@@ -354,6 +354,36 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          read_at: string | null
+          reminder_kind: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          reminder_kind?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          reminder_kind?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       oura_daily: {
         Row: {
           active_calories: number | null
@@ -441,6 +471,33 @@ export type Database = {
         }
         Relationships: []
       }
+      oura_heartrate: {
+        Row: {
+          bpm: number
+          created_at: string
+          id: number
+          source: string | null
+          ts: string
+          user_id: string
+        }
+        Insert: {
+          bpm: number
+          created_at?: string
+          id?: number
+          source?: string | null
+          ts: string
+          user_id: string
+        }
+        Update: {
+          bpm?: number
+          created_at?: string
+          id?: number
+          source?: string | null
+          ts?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       oura_tokens: {
         Row: {
           access_token: string
@@ -467,6 +524,48 @@ export type Database = {
           refresh_token?: string
           scope?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      oura_workouts: {
+        Row: {
+          activity: string | null
+          calories: number | null
+          created_at: string
+          day: string
+          end_at: string | null
+          id: string
+          intensity: string | null
+          oura_id: string
+          raw: Json | null
+          start_at: string | null
+          user_id: string
+        }
+        Insert: {
+          activity?: string | null
+          calories?: number | null
+          created_at?: string
+          day: string
+          end_at?: string | null
+          id?: string
+          intensity?: string | null
+          oura_id: string
+          raw?: Json | null
+          start_at?: string | null
+          user_id: string
+        }
+        Update: {
+          activity?: string | null
+          calories?: number | null
+          created_at?: string
+          day?: string
+          end_at?: string | null
+          id?: string
+          intensity?: string | null
+          oura_id?: string
+          raw?: Json | null
+          start_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -498,6 +597,48 @@ export type Database = {
           last_greeted_on?: string | null
           thread_seen_at?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      reminders: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          frequency_minutes: number
+          id: string
+          kind: string
+          last_fired_at: string | null
+          quiet_end: number | null
+          quiet_start: number | null
+          threshold: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          frequency_minutes?: number
+          id?: string
+          kind: string
+          last_fired_at?: string | null
+          quiet_end?: number | null
+          quiet_start?: number | null
+          threshold?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          frequency_minutes?: number
+          id?: string
+          kind?: string
+          last_fired_at?: string | null
+          quiet_end?: number | null
+          quiet_start?: number | null
+          threshold?: number | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

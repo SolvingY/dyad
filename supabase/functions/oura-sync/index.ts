@@ -194,5 +194,87 @@ Deno.serve(async (req) => {
     }
   }
 
-  return json({ connected: true, days: rows.length });
+  // Heart rate (last 24h) and workouts (last 7 days). These need the
+  // `heartrate` / `workout` permissions; older connections lack them, so a
+  // failure here is reported but doesn't fail the daily sync.
+  const extras = await syncHeartRateAndWorkouts(admin, userId, accessToken);
+
+  return json({ connected: true, days: rows.length, ...extras });
 });
+
+async function getJson(url: URL, token: string) {
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) return { status: res.status, data: null as Doc[] | null };
+  const page = await res.json();
+  return { status: res.status, data: (page.data ?? []) as Doc[] };
+}
+
+// deno-lint-ignore no-explicit-any
+async function syncHeartRateAndWorkouts(admin: any, userId: string, token: string) {
+  const out: { heartrate_points?: number; workouts?: number; needs_reconnect_for?: string[] } = {};
+  const missing: string[] = [];
+
+  const hrUrl = new URL(`${OURA_API}/heartrate`);
+  hrUrl.searchParams.set("start_datetime", new Date(Date.now() - 24 * 3600_000).toISOString());
+  hrUrl.searchParams.set("end_datetime", new Date().toISOString());
+  const hr = await getJson(hrUrl, token).catch(() => ({ status: 0, data: null }));
+  if (hr.data) {
+    const points = (hr.data as unknown as { bpm: number; source?: string; timestamp: string }[])
+      .filter((p) => typeof p.bpm === "number" && p.timestamp)
+      .map((p) => ({
+        user_id: userId,
+        ts: p.timestamp,
+        bpm: Math.round(p.bpm),
+        source: p.source ?? null,
+      }));
+    if (points.length) {
+      const { error } = await admin
+        .from("oura_heartrate")
+        .upsert(points, { onConflict: "user_id,ts" });
+      if (error) console.error(`oura-sync: heartrate upsert failed: ${error.message}`);
+    }
+    await admin
+      .from("oura_heartrate")
+      .delete()
+      .eq("user_id", userId)
+      .lt("ts", new Date(Date.now() - 14 * 86_400_000).toISOString());
+    out.heartrate_points = points.length;
+  } else if (hr.status === 401 || hr.status === 403) missing.push("heartrate");
+  else console.warn(`oura-sync: heartrate returned HTTP ${hr.status}`);
+
+  const day = (o: number) => new Date(Date.now() + o * 86_400_000).toISOString().slice(0, 10);
+  const wUrl = new URL(`${OURA_API}/workout`);
+  wUrl.searchParams.set("start_date", day(-7));
+  wUrl.searchParams.set("end_date", day(1));
+  const w = await getJson(wUrl, token).catch(() => ({ status: 0, data: null }));
+  if (w.data) {
+    type W = Doc & {
+      id: string;
+      activity?: string;
+      start_datetime?: string;
+      end_datetime?: string;
+      calories?: number;
+      intensity?: string;
+    };
+    const rows = (w.data as W[]).map((d) => ({
+      user_id: userId,
+      oura_id: d.id,
+      day: d.day,
+      activity: d.activity ?? null,
+      start_at: d.start_datetime ?? null,
+      end_at: d.end_datetime ?? null,
+      calories: d.calories ?? null,
+      intensity: d.intensity ?? null,
+      raw: d,
+    }));
+    if (rows.length) {
+      const { error } = await admin.from("oura_workouts").upsert(rows, { onConflict: "oura_id" });
+      if (error) console.error(`oura-sync: workout upsert failed: ${error.message}`);
+    }
+    out.workouts = rows.length;
+  } else if (w.status === 401 || w.status === 403) missing.push("workout");
+  else console.warn(`oura-sync: workout returned HTTP ${w.status}`);
+
+  if (missing.length) out.needs_reconnect_for = missing;
+  return out;
+}

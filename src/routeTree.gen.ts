@@ -14,8 +14,10 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AgentRouteImport } from './routes/agent'
 import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as AppRouteImport } from './routes/app'
+import { Route as ConversationsRouteImport } from './routes/conversations'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RemindersRouteImport } from './routes/reminders'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiSpeakRouteImport } from './routes/api/speak'
@@ -50,6 +52,11 @@ const AppRoute = AppRouteImport.update({
   path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConversationsRoute = ConversationsRouteImport.update({
+  id: '/conversations',
+  path: '/conversations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HistoryRoute = HistoryRouteImport.update({
   id: '/history',
   path: '/history',
@@ -58,6 +65,11 @@ const HistoryRoute = HistoryRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RemindersRoute = RemindersRouteImport.update({
+  id: '/reminders',
+  path: '/reminders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -107,8 +119,10 @@ export interface FileRoutesByFullPath {
   '/agent': typeof AgentRoute
   '/agents': typeof AgentsRoute
   '/app': typeof AppRoute
+  '/conversations': typeof ConversationsRoute
   '/history': typeof HistoryRoute
   '/privacy': typeof PrivacyRoute
+  '/reminders': typeof RemindersRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
   '/api/speak': typeof ApiSpeakRoute
@@ -124,8 +138,10 @@ export interface FileRoutesByTo {
   '/agent': typeof AgentRoute
   '/agents': typeof AgentsRoute
   '/app': typeof AppRoute
+  '/conversations': typeof ConversationsRoute
   '/history': typeof HistoryRoute
   '/privacy': typeof PrivacyRoute
+  '/reminders': typeof RemindersRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
   '/api/speak': typeof ApiSpeakRoute
@@ -142,8 +158,10 @@ export interface FileRoutesById {
   '/agent': typeof AgentRoute
   '/agents': typeof AgentsRoute
   '/app': typeof AppRoute
+  '/conversations': typeof ConversationsRoute
   '/history': typeof HistoryRoute
   '/privacy': typeof PrivacyRoute
+  '/reminders': typeof RemindersRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
   '/api/speak': typeof ApiSpeakRoute
@@ -161,8 +179,10 @@ export interface FileRouteTypes {
     | '/agent'
     | '/agents'
     | '/app'
+    | '/conversations'
     | '/history'
     | '/privacy'
+    | '/reminders'
     | '/reset-password'
     | '/terms'
     | '/api/speak'
@@ -178,8 +198,10 @@ export interface FileRouteTypes {
     | '/agent'
     | '/agents'
     | '/app'
+    | '/conversations'
     | '/history'
     | '/privacy'
+    | '/reminders'
     | '/reset-password'
     | '/terms'
     | '/api/speak'
@@ -195,8 +217,10 @@ export interface FileRouteTypes {
     | '/agent'
     | '/agents'
     | '/app'
+    | '/conversations'
     | '/history'
     | '/privacy'
+    | '/reminders'
     | '/reset-password'
     | '/terms'
     | '/api/speak'
@@ -213,8 +237,10 @@ export interface RootRouteChildren {
   AgentRoute: typeof AgentRoute
   AgentsRoute: typeof AgentsRoute
   AppRoute: typeof AppRoute
+  ConversationsRoute: typeof ConversationsRoute
   HistoryRoute: typeof HistoryRoute
   PrivacyRoute: typeof PrivacyRoute
+  RemindersRoute: typeof RemindersRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermsRoute: typeof TermsRoute
   ApiSpeakRoute: typeof ApiSpeakRoute
@@ -262,6 +288,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/conversations': {
+      id: '/conversations'
+      path: '/conversations'
+      fullPath: '/conversations'
+      preLoaderRoute: typeof ConversationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/history': {
       id: '/history'
       path: '/history'
@@ -274,6 +307,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reminders': {
+      id: '/reminders'
+      path: '/reminders'
+      fullPath: '/reminders'
+      preLoaderRoute: typeof RemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -341,8 +381,10 @@ const rootRouteChildren: RootRouteChildren = {
   AgentRoute: AgentRoute,
   AgentsRoute: AgentsRoute,
   AppRoute: AppRoute,
+  ConversationsRoute: ConversationsRoute,
   HistoryRoute: HistoryRoute,
   PrivacyRoute: PrivacyRoute,
+  RemindersRoute: RemindersRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermsRoute: TermsRoute,
   ApiSpeakRoute: ApiSpeakRoute,
