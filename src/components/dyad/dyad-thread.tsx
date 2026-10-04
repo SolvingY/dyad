@@ -53,6 +53,9 @@ export function DyadThread({ agent }: { agent: ThreadAgent | null }) {
   const [hasAgent, setHasAgent] = useState<boolean | null>(null);
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [corrected, setCorrected] = useState<Set<string>>(new Set());
+  // Replies Claude wrote because the owner's own model failed (agent-call marks
+  // those events' task_id with ":fallback").
+  const [backup, setBackup] = useState<Set<string>>(new Set());
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -141,10 +144,12 @@ export function DyadThread({ agent }: { agent: ThreadAgent | null }) {
     if (eventIds.length) {
       const { data: events } = await supabase
         .from("agent_events")
-        .select("id")
-        .in("id", eventIds)
-        .eq("was_corrected", true);
-      setCorrected(new Set((events ?? []).map((e) => e.id)));
+        .select("id, was_corrected, task_id")
+        .in("id", eventIds);
+      setCorrected(new Set((events ?? []).filter((e) => e.was_corrected).map((e) => e.id)));
+      setBackup(
+        new Set((events ?? []).filter((e) => e.task_id?.endsWith(":fallback")).map((e) => e.id)),
+      );
     }
   }, [agentId]);
 
@@ -341,9 +346,15 @@ export function DyadThread({ agent }: { agent: ThreadAgent | null }) {
               key={m.id}
               className="liquid-in max-w-[90%] self-start rounded-[1.4rem] rounded-bl-md border border-agent/40 bg-agent/15 px-4 py-2.5 shadow-[inset_0_1px_0_0_var(--glass-line-luminous)] backdrop-blur-xl"
             >
-              {(m.kind === "checkin" || externalName(m)) && (
+              {(m.kind === "checkin" || externalName(m) || (m.event_id && backup.has(m.event_id))) && (
                 <p className="mb-1 text-[10px] uppercase tracking-[0.2em] text-agent">
-                  {[externalName(m), m.kind === "checkin" && "Check-in"].filter(Boolean).join(" · ")}
+                  {[
+                    externalName(m),
+                    m.kind === "checkin" && "Check-in",
+                    m.event_id && backup.has(m.event_id) && "Backup",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               )}
               <div className="ask-dyad-md text-sm leading-relaxed text-foreground">

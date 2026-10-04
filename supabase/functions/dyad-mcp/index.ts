@@ -534,6 +534,18 @@ Deno.serve(withEdgeHealth("dyad-mcp", async (req, health) => {
       },
     });
   }
+  // Same sign-up gate as the app: agents only work for approved accounts.
+  const { data: approval } = await admin
+    .from("account_approvals")
+    .select("status")
+    .eq("user_id", caller.userId)
+    .maybeSingle();
+  if (approval?.status !== "approved") {
+    return new Response(JSON.stringify({ error: "account_not_approved" }), {
+      status: 403,
+      headers,
+    });
+  }
   health.agentIds = [caller.agentId];
 
   const body = await req.json().catch(() => undefined);

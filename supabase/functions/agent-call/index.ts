@@ -1,18 +1,25 @@
-// Wraps every Claude call the agent makes, and logs it to agent_events.
+// Wraps every model call the agent makes, and logs it to agent_events.
 //
-// POST { agent_id, task_id?, messages, system?, include_human_context? } with
-// the signed-in user's session. The caller must own the agent.
+// POST { agent_id, task_id?, messages, system?, include_human_context?,
+// use_custom_model? } with the signed-in user's session. The caller must own
+// the agent.
 //
-// One 'llm_call' event is written per call, success or failure. With
+// With use_custom_model and the owner's model configured (_shared/custom-model.ts),
+// that model answers first. If it fails, times out or returns nothing, Claude
+// answers instead: its event's task_id gets a ":fallback" suffix and the
+// response carries fallback: true. The response has Claude's shape either way.
+//
+// One 'llm_call' event is written per model attempted, success or failure. With
 // include_human_context, the user's latest oura_daily row (today or yesterday,
 // UTC) is put in the system prompt and a 'context_refresh' event is written.
 //
-// ANTHROPIC_API_KEY is never logged or returned.
+// ANTHROPIC_API_KEY and CUSTOM_MODEL_API_KEY are never logged or returned.
 
 import Anthropic from "npm:@anthropic-ai/sdk@0";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, getCallerId } from "../_shared/auth.ts";
 import { withEdgeHealth } from "../_shared/edge-health.ts";
+import { callCustomModel, customModelFromEnv } from "../_shared/custom-model.ts";
 
 const MODEL = "claude-haiku-4-5-20251001";
 const CONTEXT_LIMIT = 200_000; // Claude Haiku 4.5 context window
@@ -41,7 +48,8 @@ Deno.serve(withEdgeHealth("agent-call", async (req, health) => {
   health.userId = userId;
 
   const body = await req.json().catch(() => null);
-  const { agent_id, task_id = null, messages, include_human_context } = body ?? {};
+  const { agent_id, task_id = null, messages, include_human_context, use_custom_model } =
+    body ?? {};
   let system: string | undefined = body?.system;
   if (typeof agent_id !== "string" || !Array.isArray(messages) || messages.length === 0) {
     return json({ error: "bad_request", detail: "agent_id and messages are required" }, 400);
@@ -91,6 +99,42 @@ Deno.serve(withEdgeHealth("agent-call", async (req, health) => {
     }
   }
 
+  const logCall = async (fields: Record<string, unknown>) => {
+    const { data, error } = await admin
+      .from("agent_events")
+      .insert({ agent_id, event_type: "llm_call", ...fields })
+      .select("id")
+      .single();
+    if (error) console.error(`agent-call: logging llm_call failed: ${error.message}`);
+    return data?.id ?? null;
+  };
+
+  const custom = use_custom_model === true ? customModelFromEnv() : null;
+  if (custom) {
+    const r = await callCustomModel(custom, system, messages, MAX_TOKENS);
+    const eventId = await logCall({
+      task_id,
+      model: custom.id,
+      tokens_in: r.ok ? r.tokensIn : null,
+      tokens_out: r.ok ? r.tokensOut : null,
+      latency_ms: r.latencyMs,
+      status: r.ok ? "ok" : "error",
+      retry_count: 0,
+      context_tokens: r.ok ? r.tokensIn : null,
+      context_limit: custom.contextLimit,
+      error: r.ok ? null : r.error,
+    });
+    if (r.ok) {
+      return json({
+        event_id: eventId,
+        content: [{ type: "text", text: r.text }],
+        stop_reason: r.stopReason,
+        usage: { input_tokens: r.tokensIn, output_tokens: r.tokensOut },
+      });
+    }
+    console.warn(`agent-call: custom model failed, falling back to Claude: ${r.error}`);
+  }
+
   // SDK retries are off so retries can be counted here.
   const client = new Anthropic({ apiKey, maxRetries: 0 });
   let response: Anthropic.Message | null = null;
@@ -127,37 +171,28 @@ Deno.serve(withEdgeHealth("agent-call", async (req, health) => {
       (usage.cache_creation_input_tokens ?? 0)
     : null;
 
-  const { data: event, error: logErr } = await admin
-    .from("agent_events")
-    .insert({
-      agent_id,
-      event_type: "llm_call",
-      task_id,
-      model: MODEL,
-      tokens_in: tokensIn,
-      tokens_out: usage?.output_tokens ?? null,
-      cached_tokens: usage ? (usage.cache_read_input_tokens ?? 0) : null,
-      latency_ms: latencyMs,
-      status: response ? "ok" : "error",
-      retry_count: retries,
-      context_tokens: tokensIn,
-      context_limit: CONTEXT_LIMIT,
-      error: response ? null : errorText(failure),
-    })
-    .select("id")
-    .single();
-  if (logErr) console.error(`agent-call: logging llm_call failed: ${logErr.message}`);
+  const eventId = await logCall({
+    task_id: custom ? `${task_id ?? "call"}:fallback` : task_id,
+    model: MODEL,
+    tokens_in: tokensIn,
+    tokens_out: usage?.output_tokens ?? null,
+    cached_tokens: usage ? (usage.cache_read_input_tokens ?? 0) : null,
+    latency_ms: latencyMs,
+    status: response ? "ok" : "error",
+    retry_count: retries,
+    context_tokens: tokensIn,
+    context_limit: CONTEXT_LIMIT,
+    error: response ? null : errorText(failure),
+  });
 
   if (!response) {
-    return json(
-      { error: "claude_call_failed", detail: errorText(failure), event_id: event?.id ?? null },
-      502,
-    );
+    return json({ error: "claude_call_failed", detail: errorText(failure), event_id: eventId }, 502);
   }
   return json({
-    event_id: event?.id ?? null,
+    event_id: eventId,
     content: response.content,
     stop_reason: response.stop_reason,
     usage: response.usage,
+    ...(custom && { fallback: true }),
   });
 }));

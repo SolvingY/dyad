@@ -9,8 +9,9 @@
 //   2. marks that agent's open check-in as answered, so the hold rules see it,
 // and for the built-in agent also:
 //   3. logs an agent_events 'context_refresh' (the agent heard from the human),
-//   4. calls Claude through agent-call with the last 20 messages (holds
-//      left out), today's oura_daily row and today's agent_daily row,
+//   4. calls the agent's model (the owner's own, else Claude) through agent-call
+//      with the last 20 messages (holds left out), today's oura_daily row and
+//      today's agent_daily row,
 //   5. saves the reply with its agent_events id.
 
 import { corsHeaders, json } from "../_shared/cors.ts";
@@ -134,7 +135,13 @@ Deno.serve(withEdgeHealth("dyad-thread", async (req, health) => {
       Authorization: req.headers.get("Authorization")!,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ agent_id: agent.id, task_id: "thread", system, messages: turns }),
+    body: JSON.stringify({
+      agent_id: agent.id,
+      task_id: "thread",
+      system,
+      messages: turns,
+      use_custom_model: true,
+    }),
   });
   const result = await res.json().catch(() => null);
   if (!res.ok || !result?.content) {
