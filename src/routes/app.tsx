@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { GlassCard } from "@/components/dyad/glass-card";
@@ -10,7 +10,7 @@ import { DyadBrain, type BrainRegion } from "@/components/dyad/dyad-brain";
 import { RegionPanel } from "@/components/dyad/brain-panel";
 import { BrandLogo } from "@/components/dyad/brand-logo";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import { Check, ChevronDown, Menu } from "lucide-react";
 import { NotificationBell } from "@/components/dyad/notification-bell";
 import { HeartRateLine } from "@/components/dyad/heart-rate-line";
 import { useServerFn } from "@tanstack/react-start";
@@ -384,22 +384,11 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
           isAdmin={isAdmin}
           picker={
             d.agents.length > 1 && (
-              <label className="glass-card flex min-w-0 items-center gap-2 rounded-full py-1.5 pl-4 pr-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                <span className="hidden sm:inline">Talking to</span>
-                <span className="size-1.5 shrink-0 rounded-full bg-agent shadow-[0_0_8px_var(--agent)]" />
-                <select
-                  value={d.selectedAgent?.id ?? ""}
-                  onChange={(e) => d.selectAgent(e.target.value)}
-                  aria-label="Agent"
-                  className="min-w-0 max-w-[11rem] truncate bg-transparent py-1 text-xs normal-case tracking-normal text-foreground outline-none"
-                >
-                  {d.agents.map((a) => (
-                    <option key={a.id} value={a.id} className="bg-background text-foreground">
-                      {a.source === "builtin" ? `${a.name} (built-in)` : a.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <AgentPicker
+                agents={d.agents}
+                selectedId={d.selectedAgent?.id ?? ""}
+                onSelect={d.selectAgent}
+              />
             )
           }
         />
@@ -694,6 +683,88 @@ function Header({ isAdmin, picker }: { isAdmin: boolean; picker?: React.ReactNod
         <AccountMenu isAdmin={isAdmin} />
       </div>
     </header>
+  );
+}
+
+function AgentPicker({
+  agents,
+  selectedId,
+  onSelect,
+}: {
+  agents: { id: string; name: string; source: string }[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const selected = agents.find((a) => a.id === selectedId);
+  const label = (a: { name: string; source: string }) =>
+    a.source === "builtin" ? `${a.name} (built-in)` : a.name;
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label="Choose agent"
+        onClick={() => setOpen((v) => !v)}
+        className="glass-card flex min-w-0 items-center gap-2 rounded-full py-1.5 pl-4 pr-3 text-[10px] uppercase tracking-[0.2em] text-foreground"
+      >
+        <span className="hidden sm:inline">Talking to</span>
+        <span className="size-1.5 shrink-0 rounded-full bg-agent shadow-[0_0_8px_var(--agent)]" />
+        <span className="min-w-0 max-w-[11rem] truncate py-1 text-xs normal-case tracking-normal text-foreground">
+          {selected ? label(selected) : "Agent"}
+        </span>
+        <ChevronDown className={cn("size-3.5 shrink-0 text-agent transition-transform", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div
+          role="listbox"
+          aria-label="Agents"
+          className="glass-card absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl border-glass-line bg-background/95 p-1.5 text-foreground"
+        >
+          {agents.map((a) => {
+            const active = a.id === selectedId;
+            return (
+              <button
+                key={a.id}
+                type="button"
+                role="option"
+                aria-selected={active}
+                onClick={() => {
+                  onSelect(a.id);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-glass-line/40",
+                  active && "text-agent",
+                )}
+              >
+                <span className="min-w-0 truncate">{label(a)}</span>
+                {active && <Check className="size-4 shrink-0 text-agent" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
