@@ -131,9 +131,9 @@ function Landing() {
 
         {/* HERO text */}
         <section className="pointer-events-none relative -mt-[100dvh] flex h-dvh flex-col">
-          <header className="landing-liquid-nav pointer-events-auto fixed inset-x-0 top-0 z-50 flex items-center justify-between px-6 py-4 md:px-10">
+          <header className="landing-liquid-nav pointer-events-auto fixed inset-x-0 top-0 z-50 flex flex-col items-center gap-3 px-6 py-4 sm:flex-row sm:justify-between md:px-10">
             <BrandLogo className="h-8 md:h-10" />
-            <nav className="flex items-center gap-5">
+            <nav className="flex items-center gap-4 sm:gap-5">
               <a href="#watch" className="text-[11px] uppercase tracking-[0.25em] text-foreground hover:text-agent">
                 Watch the film
               </a>
