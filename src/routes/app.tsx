@@ -384,22 +384,11 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
           isAdmin={isAdmin}
           picker={
             d.agents.length > 1 && (
-              <label className="glass-card flex min-w-0 items-center gap-2 rounded-full py-1.5 pl-4 pr-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                <span className="hidden sm:inline">Talking to</span>
-                <span className="size-1.5 shrink-0 rounded-full bg-agent shadow-[0_0_8px_var(--agent)]" />
-                <select
-                  value={d.selectedAgent?.id ?? ""}
-                  onChange={(e) => d.selectAgent(e.target.value)}
-                  aria-label="Agent"
-                  className="min-w-0 max-w-[11rem] truncate bg-transparent py-1 text-xs normal-case tracking-normal text-foreground outline-none"
-                >
-                  {d.agents.map((a) => (
-                    <option key={a.id} value={a.id} className="bg-background text-foreground">
-                      {a.source === "builtin" ? `${a.name} (built-in)` : a.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <AgentPicker
+                agents={d.agents}
+                selectedId={d.selectedAgent?.id ?? ""}
+                onSelect={d.selectAgent}
+              />
             )
           }
         />
