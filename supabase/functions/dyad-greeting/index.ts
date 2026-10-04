@@ -2,8 +2,9 @@
 //
 // POST with the signed-in user's session; the dashboard calls it on load. The
 // first call each day (America/Chicago) claims profiles.last_greeted_on, asks
-// Claude through agent-call for a short greeting about today, and posts it to
-// the Dyad thread. Later calls that day return { greeted: false }.
+// the agent's model (the owner's own, else Claude) through agent-call for a
+// short greeting about today, and posts it to the Dyad thread. Later calls that
+// day return { greeted: false }.
 
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, getCallerId } from "../_shared/auth.ts";
@@ -83,6 +84,7 @@ Deno.serve(withEdgeHealth("dyad-greeting", async (req, health) => {
       task_id: "greeting",
       system,
       messages: [{ role: "user", content: PROMPT }],
+      use_custom_model: true,
     }),
   });
   const result = await res.json().catch(() => null);
