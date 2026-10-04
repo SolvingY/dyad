@@ -200,6 +200,7 @@ function Trends() {
             ) : (
               humanTrends.map((t) => <TrendCard key={t.label} tone="human" trend={t} />)
             )}
+            <Workouts />
           </section>
 
           <section aria-label="Agent" className="flex flex-col gap-5">
@@ -225,6 +226,58 @@ function Trends() {
         </div>
       </main>
     </div>
+  );
+}
+
+type Workout = {
+  id: string;
+  day: string;
+  activity: string | null;
+  start_at: string | null;
+  end_at: string | null;
+  calories: number | null;
+  intensity: string | null;
+};
+
+function Workouts() {
+  const [rows, setRows] = useState<Workout[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    void (async () => {
+      const { data, error } = await supabase
+        .from("oura_workouts")
+        .select("id, day, activity, start_at, end_at, calories, intensity")
+        .order("start_at", { ascending: false })
+        .limit(20);
+      setError(error?.message ?? null);
+      setRows(data ?? []);
+    })();
+  }, []);
+  const mins = (w: Workout) =>
+    w.start_at && w.end_at ? Math.round((new Date(w.end_at).getTime() - new Date(w.start_at).getTime()) / 60_000) : null;
+  return (
+    <GlassCard tone="human" className="px-5 py-5">
+      <span className="text-[10px] uppercase tracking-[0.25em] text-foreground">Workouts</span>
+      {error ? (
+        <p className="mt-3 text-xs text-foreground">Workouts error: {error}</p>
+      ) : rows && rows.length === 0 ? (
+        <p className="mt-3 text-xs text-foreground">No workouts yet. Reconnect Oura from the dashboard if you haven't shared workouts.</p>
+      ) : (
+        <ul className="mt-3 flex flex-col gap-2">
+          {(rows ?? []).map((w) => (
+            <li key={w.id} className="flex items-baseline justify-between gap-3 text-sm text-foreground">
+              <span className="capitalize">{(w.activity ?? "Workout").replace(/_/g, " ")}</span>
+              <span className="text-xs">
+                {new Date(`${w.day}T12:00:00`).toLocaleDateString([], { month: "short", day: "numeric" })}
+                {mins(w) != null && ` · ${mins(w)} min`}
+                {w.calories != null && ` · ${Math.round(w.calories)} cal`}
+                {w.intensity && ` · ${w.intensity}`}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </GlassCard>
   );
 }
 
