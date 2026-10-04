@@ -17,6 +17,7 @@ import { corsHeaders, json } from "../_shared/cors.ts";
 import { ACT_AS_USER_HEADER, adminClient, getCallerId } from "../_shared/auth.ts";
 import { TZ, chicagoParts } from "../_shared/chicago.ts";
 import { holdReason } from "../_shared/checkin-rules.ts";
+import { withEdgeHealth } from "../_shared/edge-health.ts";
 
 const FIRST_HOUR = 9;
 const LAST_HOUR = 18; // 6pm
@@ -45,7 +46,7 @@ function oneQuestion(message: string): string {
   return i === -1 ? message : message.slice(0, i + 1);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeHealth("agent-checkin", async (req, health) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const admin = adminClient();
@@ -56,6 +57,7 @@ Deno.serve(async (req) => {
   // does not, since the human asked.
   const selfUserId = ok === true ? null : await getCallerId(req, admin);
   if (ok !== true && !selfUserId) return json({ error: "forbidden" }, 403);
+  if (selfUserId) health.userId = selfUserId;
 
   const now = new Date();
   const local = chicagoParts(now);
@@ -94,6 +96,7 @@ Deno.serve(async (req) => {
   const firstAgentByUser = new Map<string, string>();
   for (const a of agents ?? [])
     if (!firstAgentByUser.has(a.user_id)) firstAgentByUser.set(a.user_id, a.id);
+  health.agentIds = [...firstAgentByUser.values()];
 
   const results: {
     user_id: string;
@@ -217,7 +220,7 @@ Deno.serve(async (req) => {
   }
 
   return json({ checked_in: results.length, results, notifications: reminderCount });
-});
+}));
 
 // ---------- Reminders ----------
 // Kinds: hr_high (bpm above resting), readiness_low (score), agent_latency (ms),

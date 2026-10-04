@@ -9,18 +9,20 @@ import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, getCallerId } from "../_shared/auth.ts";
 import { chicagoParts } from "../_shared/chicago.ts";
 import { THREAD_SYSTEM } from "../_shared/thread-prompt.ts";
+import { withEdgeHealth } from "../_shared/edge-health.ts";
 
 const PROMPT = `The human just opened Dyad for the first time today. Write a short greeting
 (2-3 sentences) about today: cite one of their Oura metrics and one of your own vitals, if you have
 them. Ask at most one question. Don't mention that this is a greeting.`;
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeHealth("dyad-greeting", async (req, health) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   const admin = adminClient();
   const userId = await getCallerId(req, admin);
   if (!userId) return json({ error: "not_signed_in" }, 401);
+  health.userId = userId;
 
   const { data: agent } = await admin
     .from("agents")
@@ -109,4 +111,4 @@ Deno.serve(async (req) => {
     return json({ error: "save_failed" }, 500);
   }
   return json({ greeted: true });
-});
+}));

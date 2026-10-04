@@ -17,16 +17,18 @@ import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, getCallerId } from "../_shared/auth.ts";
 import { chicagoParts } from "../_shared/chicago.ts";
 import { THREAD_SYSTEM } from "../_shared/thread-prompt.ts";
+import { withEdgeHealth } from "../_shared/edge-health.ts";
 
 const HISTORY = 20;
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeHealth("dyad-thread", async (req, health) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   const admin = adminClient();
   const userId = await getCallerId(req, admin);
   if (!userId) return json({ error: "not_signed_in" }, 401);
+  health.userId = userId;
 
   const body = await req.json().catch(() => null);
   const content = typeof body?.content === "string" ? body.content.trim() : "";
@@ -154,4 +156,4 @@ Deno.serve(async (req) => {
   if (replyErr) console.error(`dyad-thread: saving reply failed: ${replyErr.message}`);
 
   return json({ ok: true });
-});
+}));

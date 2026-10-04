@@ -22,6 +22,7 @@ import { ACT_AS_USER_HEADER, adminClient } from "../_shared/auth.ts";
 import { KEY_PREFIX, hashAgentKey } from "../_shared/agent-key.ts";
 import { chicagoParts } from "../_shared/chicago.ts";
 import { holdReason } from "../_shared/checkin-rules.ts";
+import { withEdgeHealth } from "../_shared/edge-health.ts";
 
 const RATE_LIMIT = 20;
 const RATE_WINDOW_SECONDS = 3600;
@@ -345,7 +346,13 @@ async function logToolCall(
     },
   ];
   if (!error && (tool === "get_vitals" || tool === "get_thread")) {
-    rows.push({ agent_id: agentId, event_type: "context_refresh", task_id: "mcp" });
+    rows.push({
+      agent_id: agentId,
+      event_type: "context_refresh",
+      task_id: "mcp",
+      status: "ok",
+      retry_count: 0,
+    });
   }
   const { error: logErr } = await admin.from("agent_events").insert(rows);
   if (logErr) console.error(`dyad-mcp: logging tool call failed: ${logErr.message}`);
@@ -492,7 +499,7 @@ async function callerFromOAuth(admin: Admin, token: string): Promise<Caller | nu
   return agent ? { agentId: agent.id, userId } : null;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeHealth("dyad-mcp", async (req, health) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
 
   // OAuth protected resource metadata (RFC 9728): tells MCP clients where to sign in.
@@ -527,6 +534,7 @@ Deno.serve(async (req) => {
       },
     });
   }
+  health.agentIds = [caller.agentId];
 
   const body = await req.json().catch(() => undefined);
   if (body === undefined) {
@@ -540,4 +548,4 @@ Deno.serve(async (req) => {
 
   if (replies.length === 0) return new Response(null, { status: 202, headers });
   return new Response(JSON.stringify(Array.isArray(body) ? replies : replies[0]), { headers });
-});
+}));

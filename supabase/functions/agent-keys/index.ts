@@ -10,14 +10,16 @@
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, getCallerId } from "../_shared/auth.ts";
 import { hashAgentKey, newAgentKey } from "../_shared/agent-key.ts";
+import { withEdgeHealth } from "../_shared/edge-health.ts";
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeHealth("agent-keys", async (req, health) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   const admin = adminClient();
   const userId = await getCallerId(req, admin);
   if (!userId) return json({ error: "not_signed_in" }, 401);
+  health.userId = userId;
 
   const body = await req.json().catch(() => null);
 
@@ -72,4 +74,4 @@ Deno.serve(async (req) => {
   }
 
   return json({ error: "bad_request", detail: "action must be create or revoke" }, 400);
-});
+}));
