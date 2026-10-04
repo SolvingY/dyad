@@ -46,6 +46,7 @@ Deno.serve(withEdgeHealth("dyad-thread", async (req, health) => {
     agentId ? agents.eq("id", agentId) : agents.eq("source", "builtin").order("created_at").limit(1)
   ).maybeSingle();
   if (!agent) return json({ error: "agent_not_found" }, 404);
+  health.agentIds = [agent.id];
 
   const { error: saveErr } = await admin.from("thread_messages").insert({
     user_id: userId,
@@ -109,7 +110,7 @@ Deno.serve(withEdgeHealth("dyad-thread", async (req, health) => {
     admin
       .from("agent_daily")
       .select(
-        "day, readiness_score, freshness_score, error_rate, error_rate_deviation, retry_rate, correction_rate, cache_hit_rate, baseline_latency_ms, latency_variability_ms, calls_per_hour, call_count, avg_context_fill",
+        "day, readiness_score, freshness_score, error_rate, error_rate_deviation, retry_rate, correction_rate, cache_hit_rate, baseline_latency_ms, latency_variability_ms, calls_per_hour, call_count, avg_context_fill, function_success_rate, function_failure_count, function_latency_ms",
       )
       .eq("agent_id", agent.id)
       .eq("day", now.toISOString().slice(0, 10))

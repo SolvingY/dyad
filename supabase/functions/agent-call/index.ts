@@ -61,6 +61,7 @@ Deno.serve(withEdgeHealth("agent-call", async (req, health) => {
     .eq("user_id", userId)
     .maybeSingle();
   if (!agent) return json({ error: "agent_not_found" }, 404);
+  health.agentIds = [agent.id];
 
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!apiKey) {

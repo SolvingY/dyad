@@ -123,7 +123,7 @@ Deno.serve(withEdgeHealth("agent-checkin", async (req, health) => {
         admin
           .from("agent_daily")
           .select(
-            "day, readiness_score, freshness_score, call_count, error_rate, retry_rate, correction_rate, baseline_latency_ms",
+            "day, readiness_score, freshness_score, call_count, error_rate, retry_rate, correction_rate, baseline_latency_ms, function_success_rate, function_failure_count, function_latency_ms",
           )
           .eq("agent_id", agentId)
           .eq("day", utcToday)
