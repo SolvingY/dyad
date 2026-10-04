@@ -97,6 +97,9 @@ export type Database = {
           error_rate: number | null
           error_rate_deviation: number | null
           freshness_score: number | null
+          function_failure_count: number | null
+          function_latency_ms: number | null
+          function_success_rate: number | null
           id: string
           latency_variability_ms: number | null
           output_tokens: number | null
@@ -120,6 +123,9 @@ export type Database = {
           error_rate?: number | null
           error_rate_deviation?: number | null
           freshness_score?: number | null
+          function_failure_count?: number | null
+          function_latency_ms?: number | null
+          function_success_rate?: number | null
           id?: string
           latency_variability_ms?: number | null
           output_tokens?: number | null
@@ -143,6 +149,9 @@ export type Database = {
           error_rate?: number | null
           error_rate_deviation?: number | null
           freshness_score?: number | null
+          function_failure_count?: number | null
+          function_latency_ms?: number | null
+          function_success_rate?: number | null
           id?: string
           latency_variability_ms?: number | null
           output_tokens?: number | null
@@ -171,6 +180,7 @@ export type Database = {
           created_at: string
           error: string | null
           event_type: string
+          function_name: string | null
           id: string
           latency_ms: number | null
           model: string | null
@@ -189,6 +199,7 @@ export type Database = {
           created_at?: string
           error?: string | null
           event_type?: string
+          function_name?: string | null
           id?: string
           latency_ms?: number | null
           model?: string | null
@@ -207,6 +218,7 @@ export type Database = {
           created_at?: string
           error?: string | null
           event_type?: string
+          function_name?: string | null
           id?: string
           latency_ms?: number | null
           model?: string | null
