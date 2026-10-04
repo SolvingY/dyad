@@ -682,12 +682,12 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
 function Header({ isAdmin, picker }: { isAdmin: boolean; picker?: React.ReactNode }) {
   const { user } = useAuth();
   return (
-    <header className="flex items-center justify-between gap-4">
-      <h1 className="flex shrink-0">
+    <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-3 sm:flex sm:justify-between sm:gap-4">
+      <h1 className="flex min-w-0">
         <BrandLogo className="h-7 md:h-9" />
       </h1>
-      {picker}
-      <div className="flex items-center gap-2">
+      {picker && <div className="col-span-2 row-start-2 flex min-w-0 justify-center sm:order-none sm:flex-1">{picker}</div>}
+      <div className="flex shrink-0 items-center gap-2">
         {user && <NotificationBell userId={user.id} />}
         <AccountMenu isAdmin={isAdmin} />
       </div>
@@ -727,14 +727,14 @@ function AgentPicker({
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative min-w-0 max-w-full">
       <button
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Choose agent"
         onClick={() => setOpen((v) => !v)}
-        className="glass-card flex min-w-0 items-center gap-2 rounded-full py-1.5 pl-4 pr-3 text-[10px] uppercase tracking-[0.2em] text-foreground"
+        className="glass-card flex min-w-0 max-w-full items-center gap-2 rounded-full py-1.5 pl-4 pr-3 text-[10px] uppercase tracking-[0.2em] text-foreground"
       >
         <span className="hidden sm:inline">Talking to</span>
         <span className="size-1.5 shrink-0 rounded-full bg-agent shadow-[0_0_8px_var(--agent)]" />
