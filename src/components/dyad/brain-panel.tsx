@@ -96,6 +96,9 @@ export function AgentPanel({ v }: { v: AgentVitals | null }) {
           <Row label="Correction rate" value={fmt(v.correctionRate, pct)} />
           <Row label="Retry rate" value={fmt(v.retryRate, pct)} />
           <Row label="Context fill" value={fmt(v.contextFill, pct)} />
+          <Row label="Function success" value={fmt(v.functionSuccessRate, pct)} />
+          <Row label="Function failures" value={fmt(v.functionFailureCount, int)} />
+          <Row label="Function response" value={fmt(v.functionLatencyMs, (n) => `${int(n)} ms`)} />
         </dl>
       )}
       {v && (

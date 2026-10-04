@@ -297,6 +297,8 @@ export function agentLimitingFactor(v: AgentVitals | null): string | null {
     ["error rate", w.error * 100 * Math.min(1, v.errorRate ?? 0)],
     ["context fill", w.contextFill * 100 * Math.min(1, v.contextFill ?? 0)],
     ["retry rate", w.retry * 100 * Math.min(1, v.retryRate ?? 0)],
+    ["function failures", w.functionSuccess * 100 * (1 - (v.functionSuccessRate ?? 1))],
+    ["function response time", w.functionLatency * 100 * Math.min(1, (v.functionLatencyMs ?? 0) / 5000)],
   ];
   losses.sort((a, b) => b[1] - a[1]);
   const top = losses[0];
