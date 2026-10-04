@@ -517,7 +517,7 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
                   </div>
                 </div>
               </GlassCard>
-              <div className="min-h-0 overflow-y-auto">
+              <div className="min-h-0">
                 {d.ouraError || d.agentError ? (
                   <GlassCard tone="dyad" className="px-5 py-5 text-xs text-foreground">
                     {d.ouraError && <p>Oura error: {d.ouraError}</p>}

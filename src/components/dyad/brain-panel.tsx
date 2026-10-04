@@ -17,9 +17,9 @@ const signed = (n: number, digits = 1) => `${n > 0 ? "+" : ""}${n.toFixed(digits
 function Row({ label, value }: { label: string; value: ReactNode }) {
   const missing = value === NO_DATA;
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-glass-line/60 py-2 last:border-0">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className={missing ? "text-xs text-muted-foreground" : "font-display text-sm font-light text-foreground"}>
+    <div className="flex min-w-0 items-baseline justify-between gap-3 border-b border-glass-line/60 py-2 last:border-0">
+      <dt className="min-w-0 text-xs text-muted-foreground">{label}</dt>
+      <dd className={missing ? "shrink-0 text-xs text-muted-foreground" : "shrink-0 font-display text-sm font-light text-foreground"}>
         {value}
       </dd>
     </div>
@@ -41,12 +41,12 @@ function Title({ children, sub, dot }: { children: ReactNode; sub?: string | und
 export function HumanPanel({ v }: { v: HumanVitals | null }) {
   const sub = v ? `Oura · ${v.day}` : undefined;
   return (
-    <GlassCard tone="human" className="px-5 py-5">
+    <GlassCard tone="human" className="h-full px-5 py-4 hover:transform-none">
       <Title dot="bg-human" sub={sub}>Human</Title>
       {!v ? (
         <p className="text-xs text-muted-foreground">No Oura data yet.</p>
       ) : (
-        <dl>
+        <dl className="grid gap-x-5 sm:grid-cols-2">
           <Row label="Readiness" value={fmt(v.readiness, int)} />
           <Row label="Sleep" value={fmt(v.sleepScore, int)} />
           <Row label="Sleep efficiency" value={fmt(v.sleepEfficiency, (n) => `${int(n)}%`)} />
@@ -78,12 +78,12 @@ export function HumanPanel({ v }: { v: HumanVitals | null }) {
 
 export function AgentPanel({ v }: { v: AgentVitals | null }) {
   return (
-    <GlassCard tone="agent" className="px-5 py-5">
+    <GlassCard tone="agent" className="h-full px-5 py-4 hover:transform-none">
       <Title dot="bg-agent" sub={v ? `Calls · ${v.day}` : undefined}>Agent</Title>
       {!v ? (
         <p className="text-xs text-muted-foreground">No agent calls logged yet.</p>
       ) : (
-        <dl>
+        <dl className="grid gap-x-5 sm:grid-cols-2">
           <Row label="Readiness" value={fmt(v.readiness, int)} />
           <Row label="Freshness" value={fmt(v.freshness, int)} />
           <Row label="Cache hit rate" value={fmt(v.cacheHitRate, (n) => `${Math.round(n)}%`)} />
@@ -129,7 +129,7 @@ export function DyadPanel({
         ? "Agent capacity higher"
         : "Human capacity higher";
   return (
-    <GlassCard tone="dyad" className="px-5 py-5">
+    <GlassCard tone="dyad" className="h-full px-5 py-4 hover:transform-none">
       <span aria-hidden="true" className="dyad-gradient-line absolute inset-x-6 top-0 h-px" />
       <Title dot="bg-gradient-to-br from-human to-agent" sub={posture ? posture.interruption.replace("_", " ") : undefined}>
         Dyad
