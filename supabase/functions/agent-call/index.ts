@@ -12,6 +12,7 @@
 import Anthropic from "npm:@anthropic-ai/sdk@0";
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { adminClient, getCallerId } from "../_shared/auth.ts";
+import { withEdgeHealth } from "../_shared/edge-health.ts";
 
 const MODEL = "claude-haiku-4-5-20251001";
 const CONTEXT_LIMIT = 200_000; // Claude Haiku 4.5 context window
@@ -30,13 +31,14 @@ function errorText(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withEdgeHealth("agent-call", async (req, health) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   const admin = adminClient();
   const userId = await getCallerId(req, admin);
   if (!userId) return json({ error: "not_signed_in" }, 401);
+  health.userId = userId;
 
   const body = await req.json().catch(() => null);
   const { agent_id, task_id = null, messages, include_human_context } = body ?? {};
@@ -59,6 +61,7 @@ Deno.serve(async (req) => {
     .eq("user_id", userId)
     .maybeSingle();
   if (!agent) return json({ error: "agent_not_found" }, 404);
+  health.agentIds = [agent.id];
 
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!apiKey) {
@@ -157,4 +160,4 @@ Deno.serve(async (req) => {
     stop_reason: response.stop_reason,
     usage: response.usage,
   });
-});
+}));

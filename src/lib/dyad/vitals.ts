@@ -48,6 +48,9 @@ export type AgentVitals = {
   correctionRate: number | null; // fraction
   retryRate: number | null; // fraction
   contextFill: number | null; // fraction
+  functionSuccessRate: number | null; // fraction
+  functionFailureCount: number | null;
+  functionLatencyMs: number | null;
 };
 
 const num = (v: number | string | null | undefined): number | null => {
@@ -94,6 +97,9 @@ export function toAgentVitals(row: AgentRow | null | undefined): AgentVitals | n
     correctionRate: num(row.correction_rate),
     retryRate: num(row.retry_rate),
     contextFill: num(row.avg_context_fill),
+    functionSuccessRate: num(row.function_success_rate),
+    functionFailureCount: num(row.function_failure_count),
+    functionLatencyMs: num(row.function_latency_ms),
   };
 }
 
@@ -291,6 +297,8 @@ export function agentLimitingFactor(v: AgentVitals | null): string | null {
     ["error rate", w.error * 100 * Math.min(1, v.errorRate ?? 0)],
     ["context fill", w.contextFill * 100 * Math.min(1, v.contextFill ?? 0)],
     ["retry rate", w.retry * 100 * Math.min(1, v.retryRate ?? 0)],
+    ["function failures", w.functionSuccess * 100 * (1 - (v.functionSuccessRate ?? 1))],
+    ["function response time", w.functionLatency * 100 * Math.min(1, (v.functionLatencyMs ?? 0) / 5000)],
   ];
   losses.sort((a, b) => b[1] - a[1]);
   const top = losses[0];

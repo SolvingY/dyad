@@ -376,6 +376,13 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
       value: agentDay?.avg_context_fill == null ? null : pct(agentDay.avg_context_fill),
     },
   ];
+  const edgeHealth = latestAgent
+    ? {
+        successRate: latestAgent.function_success_rate,
+        failureCount: latestAgent.function_failure_count,
+        latencyMs: latestAgent.function_latency_ms,
+      }
+    : null;
 
   return (
     <div className="dyad-ambient relative min-h-dvh">
@@ -482,7 +489,7 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
           </aside>
 
           <section aria-label="Brain and conversation" className="order-1 flex min-h-0 flex-col gap-4 lg:order-none">
-            <div className="grid shrink-0 gap-4 lg:h-[40%] lg:min-h-0 xl:grid-cols-[1.2fr_1fr]">
+            <div className="grid shrink-0 gap-4 lg:min-h-[390px] xl:grid-cols-[1.2fr_1fr]">
               <GlassCard tone="dyad" className="flex min-h-0 flex-col overflow-hidden p-0">
                 <DyadBrain
                   visual={visual}
@@ -517,7 +524,7 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
                   </div>
                 </div>
               </GlassCard>
-              <div className="min-h-0 overflow-y-auto">
+              <div className="min-h-0">
                 {d.ouraError || d.agentError ? (
                   <GlassCard tone="dyad" className="px-5 py-5 text-xs text-foreground">
                     {d.ouraError && <p>Oura error: {d.ouraError}</p>}
@@ -556,6 +563,7 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
                     : "No agent activity today"
               }
               stats={agentStats}
+              footer={<EdgeFunctionHealth health={edgeHealth} />}
             />
           </aside>
         </div>
@@ -663,6 +671,7 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
               note="Total text it read and wrote — roughly its workload."
             />
             <SlotCard tone="agent" label="Context fill" value={pct(latestAgent?.avg_context_fill)} note="How full its working memory was. Near 100% it starts forgetting earlier details." />
+            <EdgeFunctionHealthCard health={edgeHealth} />
           </section>
         </div>
       </main>
@@ -673,12 +682,12 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
 function Header({ isAdmin, picker }: { isAdmin: boolean; picker?: React.ReactNode }) {
   const { user } = useAuth();
   return (
-    <header className="flex items-center justify-between gap-4">
-      <h1 className="flex shrink-0">
+    <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-3 sm:flex sm:justify-between sm:gap-4">
+      <h1 className="flex min-w-0">
         <BrandLogo className="h-7 md:h-9" />
       </h1>
-      {picker}
-      <div className="flex items-center gap-2">
+      {picker && <div className="col-span-2 row-start-2 flex min-w-0 justify-center sm:order-none sm:flex-1">{picker}</div>}
+      <div className="flex shrink-0 items-center gap-2">
         {user && <NotificationBell userId={user.id} />}
         <AccountMenu isAdmin={isAdmin} />
       </div>
@@ -718,14 +727,14 @@ function AgentPicker({
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative min-w-0 max-w-full">
       <button
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Choose agent"
         onClick={() => setOpen((v) => !v)}
-        className="glass-card flex min-w-0 items-center gap-2 rounded-full py-1.5 pl-4 pr-3 text-[10px] uppercase tracking-[0.2em] text-foreground"
+        className="glass-card flex min-w-0 max-w-full items-center gap-2 rounded-full py-1.5 pl-4 pr-3 text-[10px] uppercase tracking-[0.2em] text-foreground"
       >
         <span className="hidden sm:inline">Talking to</span>
         <span className="size-1.5 shrink-0 rounded-full bg-agent shadow-[0_0_8px_var(--agent)]" />
@@ -866,6 +875,41 @@ function SideCard({
         ))}
       </dl>
       <div className="mt-auto pt-6">{footer}</div>
+    </GlassCard>
+  );
+}
+
+function EdgeFunctionHealth({
+  health,
+}: {
+  health: { successRate: number | null; failureCount: number | null; latencyMs: number | null } | null;
+}) {
+  const hasData = health?.successRate != null;
+  return (
+    <div className="border-t border-glass-line/60 pt-4">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[10px] uppercase tracking-[0.2em] text-agent">Edge Functions</span>
+        <span className="text-xs text-foreground">
+          {!hasData ? "No function activity yet" : (health.failureCount ?? 0) > 0 ? "Issues detected" : "Connected"}
+        </span>
+      </div>
+      {hasData && (
+        <dl className="mt-3 grid grid-cols-3 gap-2">
+          <div><dt className="text-[9px] uppercase tracking-[0.12em] text-foreground">Success</dt><dd className="mt-1 text-sm text-foreground">{Math.round((health.successRate ?? 0) * 100)}%</dd></div>
+          <div><dt className="text-[9px] uppercase tracking-[0.12em] text-foreground">Failures</dt><dd className="mt-1 text-sm text-foreground">{health.failureCount ?? 0}</dd></div>
+          <div><dt className="text-[9px] uppercase tracking-[0.12em] text-foreground">Response</dt><dd className="mt-1 text-sm text-foreground">{health.latencyMs == null ? "No reading yet" : `${Math.round(health.latencyMs)} ms`}</dd></div>
+        </dl>
+      )}
+    </div>
+  );
+}
+
+function EdgeFunctionHealthCard({ health }: { health: { successRate: number | null; failureCount: number | null; latencyMs: number | null } | null }) {
+  return (
+    <GlassCard tone="agent" className="px-5 py-5">
+      <span className="text-[10px] uppercase tracking-[0.25em] text-agent">Edge Functions</span>
+      <div className="mt-3"><EdgeFunctionHealth health={health} /></div>
+      <p className="mt-3 text-xs leading-relaxed text-foreground">Reliability and response time for the services connecting Dyad, Oura, conversations, and check-ins.</p>
     </GlassCard>
   );
 }

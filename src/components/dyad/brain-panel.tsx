@@ -14,12 +14,12 @@ const int = (n: number) => Math.round(n).toLocaleString();
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 const signed = (n: number, digits = 1) => `${n > 0 ? "+" : ""}${n.toFixed(digits)}`;
 
-function Row({ label, value }: { label: string; value: ReactNode }) {
+function Row({ label, value, compact = false }: { label: string; value: ReactNode; compact?: boolean }) {
   const missing = value === NO_DATA;
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-glass-line/60 py-2 last:border-0">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className={missing ? "text-xs text-muted-foreground" : "font-display text-sm font-light text-foreground"}>
+    <div className={compact ? "flex min-w-0 items-baseline justify-between gap-3 border-b border-glass-line/60 py-1 last:border-0" : "flex min-w-0 items-baseline justify-between gap-3 border-b border-glass-line/60 py-2 last:border-0"}>
+      <dt className={compact ? "min-w-0 text-[11px] text-muted-foreground" : "min-w-0 text-xs text-muted-foreground"}>{label}</dt>
+      <dd className={missing ? "shrink-0 text-xs text-muted-foreground" : compact ? "shrink-0 font-display text-xs font-light text-foreground" : "shrink-0 font-display text-sm font-light text-foreground"}>
         {value}
       </dd>
     </div>
@@ -41,12 +41,12 @@ function Title({ children, sub, dot }: { children: ReactNode; sub?: string | und
 export function HumanPanel({ v }: { v: HumanVitals | null }) {
   const sub = v ? `Oura · ${v.day}` : undefined;
   return (
-    <GlassCard tone="human" className="px-5 py-5">
+    <GlassCard tone="human" className="h-full px-5 py-4 hover:transform-none">
       <Title dot="bg-human" sub={sub}>Human</Title>
       {!v ? (
         <p className="text-xs text-muted-foreground">No Oura data yet.</p>
       ) : (
-        <dl>
+        <dl className="grid gap-x-5 sm:grid-cols-2">
           <Row label="Readiness" value={fmt(v.readiness, int)} />
           <Row label="Sleep" value={fmt(v.sleepScore, int)} />
           <Row label="Sleep efficiency" value={fmt(v.sleepEfficiency, (n) => `${int(n)}%`)} />
@@ -78,12 +78,12 @@ export function HumanPanel({ v }: { v: HumanVitals | null }) {
 
 export function AgentPanel({ v }: { v: AgentVitals | null }) {
   return (
-    <GlassCard tone="agent" className="px-5 py-5">
+    <GlassCard tone="agent" className="h-full px-5 py-4 hover:transform-none">
       <Title dot="bg-agent" sub={v ? `Calls · ${v.day}` : undefined}>Agent</Title>
       {!v ? (
         <p className="text-xs text-muted-foreground">No agent calls logged yet.</p>
       ) : (
-        <dl>
+        <dl className="grid gap-x-5 sm:grid-cols-2">
           <Row label="Readiness" value={fmt(v.readiness, int)} />
           <Row label="Freshness" value={fmt(v.freshness, int)} />
           <Row label="Cache hit rate" value={fmt(v.cacheHitRate, (n) => `${Math.round(n)}%`)} />
@@ -96,6 +96,9 @@ export function AgentPanel({ v }: { v: AgentVitals | null }) {
           <Row label="Correction rate" value={fmt(v.correctionRate, pct)} />
           <Row label="Retry rate" value={fmt(v.retryRate, pct)} />
           <Row label="Context fill" value={fmt(v.contextFill, pct)} />
+          <Row label="Function success" value={fmt(v.functionSuccessRate, pct)} />
+          <Row label="Function failures" value={fmt(v.functionFailureCount, int)} />
+          <Row label="Function response" value={fmt(v.functionLatencyMs, (n) => `${int(n)} ms`)} />
         </dl>
       )}
       {v && (
@@ -129,39 +132,39 @@ export function DyadPanel({
         ? "Agent capacity higher"
         : "Human capacity higher";
   return (
-    <GlassCard tone="dyad" className="px-5 py-5">
+    <GlassCard tone="dyad" className="h-auto min-h-full px-4 py-3 hover:transform-none">
       <span aria-hidden="true" className="dyad-gradient-line absolute inset-x-6 top-0 h-px" />
       <Title dot="bg-gradient-to-br from-human to-agent" sub={posture ? posture.interruption.replace("_", " ") : undefined}>
         Dyad
       </Title>
       <dl>
-        <Row label="Human readiness" value={fmt(human, int)} />
-        <Row label="Agent readiness" value={fmt(agent, int)} />
-        <Row label={deltaLabel} value={posture ? signed(posture.delta, 0) : NO_DATA} />
+        <Row compact label="Human readiness" value={fmt(human, int)} />
+        <Row compact label="Agent readiness" value={fmt(agent, int)} />
+        <Row compact label={deltaLabel} value={posture ? signed(posture.delta, 0) : NO_DATA} />
       </dl>
       {!posture ? (
         <p className="mt-4 text-xs text-muted-foreground">
           Today's posture appears once both readiness scores are available.
         </p>
       ) : (
-        <div className="mt-4 space-y-4">
-          <p className="text-sm font-light leading-relaxed text-foreground">{posture.headline}</p>
-          <div className="grid gap-4 sm:grid-cols-2">
+        <div className="mt-2 space-y-2">
+          <p className="text-xs font-light leading-snug text-foreground">{posture.headline}</p>
+          <div className="grid gap-2 sm:grid-cols-2">
             <div>
               <p className="text-[10px] uppercase tracking-[0.3em] text-human">Human</p>
-              <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground">
+              <ul className="mt-1 space-y-0.5 text-[11px] leading-snug text-muted-foreground">
                 {posture.human.map((s) => <li key={s}>{s}</li>)}
               </ul>
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-[0.3em] text-agent">Agent</p>
-              <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground">
+              <ul className="mt-1 space-y-0.5 text-[11px] leading-snug text-muted-foreground">
                 {posture.agent.map((s) => <li key={s}>{s}</li>)}
               </ul>
             </div>
           </div>
           {limit && (
-            <p className="text-[11px] text-muted-foreground">Agent readiness is being limited by {limit}.</p>
+            <p className="text-[10px] leading-snug text-muted-foreground">Agent readiness is being limited by {limit}.</p>
           )}
         </div>
       )}
