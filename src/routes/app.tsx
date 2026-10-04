@@ -581,11 +581,49 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
               value={oura?.readiness_score}
               caption={d.ouraError ? `Oura error: ${d.ouraError}` : oura ? `Oura · ${oura.day}` : "No Oura data yet"}
             />
-            <SlotCard tone="human" label="Sleep score" value={oura?.sleep_score} />
+            <SlotCard tone="human" label="Sleep score" value={oura?.sleep_score} note="How good last night's sleep was — length, depth and timing." />
             <SlotCard
               tone="human"
               label="Avg HRV"
               value={oura?.average_hrv == null ? null : `${Math.round(oura.average_hrv)} ms`}
+              note="Variation between heartbeats. Higher than usual = recovered; a drop can mean stress or poor sleep."
+            />
+            <SlotCard
+              tone="human"
+              label="Resting heart rate"
+              value={oura?.resting_heart_rate == null ? null : `${Math.round(oura.resting_heart_rate)} bpm`}
+              note="Your lowest overnight heart rate. Higher than usual means your body is under strain."
+            />
+            <HumanLiveCells refreshKey={oura?.updated_at} />
+            <SlotCard
+              tone="human"
+              label="Total sleep"
+              value={
+                oura?.total_sleep_seconds == null
+                  ? null
+                  : `${Math.floor(oura.total_sleep_seconds / 3600)}h ${Math.round((oura.total_sleep_seconds % 3600) / 60)}m${oura.sleep_efficiency != null ? ` · ${oura.sleep_efficiency}%` : ""}`
+              }
+              note="Time asleep, and efficiency — the share of time in bed you were asleep (85%+ is good)."
+            />
+            <SlotCard
+              tone="human"
+              label="Body temperature"
+              value={
+                oura?.temperature_deviation == null
+                  ? null
+                  : `${oura.temperature_deviation > 0 ? "+" : ""}${Number(oura.temperature_deviation).toFixed(1)} °C`
+              }
+              note="Difference from your usual temperature. Big swings can come before illness."
+            />
+            <SlotCard
+              tone="human"
+              label="Activity"
+              value={
+                oura?.activity_score == null && oura?.steps == null
+                  ? null
+                  : `${oura?.activity_score ?? "—"}${oura?.steps != null ? ` · ${oura.steps.toLocaleString()} steps` : ""}`
+              }
+              note="Activity score and steps — how active you've been against your goal."
             />
           </section>
           <section aria-label="Cross-analysis" className="flex flex-col gap-5">
@@ -613,12 +651,29 @@ function DashboardInner({ isAdmin }: { isAdmin: boolean }) {
               value={latestAgent?.readiness_score}
               caption={d.agentError ? `Agent error: ${d.agentError}` : latestAgent ? `Agent · ${latestAgent.day}` : "No agent calls yet"}
             />
-            <SlotCard tone="agent" label="Calls" value={latestAgent?.call_count} />
+            <SlotCard tone="agent" label="Calls" value={latestAgent?.call_count} note="Model calls it made that day." />
             <SlotCard
               tone="agent"
               label="Error rate"
               value={latestAgent?.error_rate == null ? null : `${Math.round(latestAgent.error_rate * 100)}%`}
+              note="Share of its calls that failed."
             />
+            <SlotCard tone="agent" label="Freshness" value={latestAgent?.freshness_score} note="How current its knowledge of you is. Drops as its last refresh ages." />
+            <SlotCard tone="agent" label="Correction rate" value={pct(latestAgent?.correction_rate)} note={'How often you flagged its replies with "This was wrong".'} />
+            <SlotCard
+              tone="agent"
+              label="Latency"
+              value={latestAgent?.baseline_latency_ms == null ? null : `${Math.round(latestAgent.baseline_latency_ms)} ms`}
+              note="Typical response time. Rising means it's slowing down."
+            />
+            <SlotCard tone="agent" label="Retry rate" value={pct(latestAgent?.retry_rate)} note="How often a call had to be tried again." />
+            <SlotCard
+              tone="agent"
+              label="Tokens"
+              value={latestAgent?.total_tokens == null ? null : Number(latestAgent.total_tokens).toLocaleString()}
+              note="Total text it read and wrote — roughly its workload."
+            />
+            <SlotCard tone="agent" label="Context fill" value={pct(latestAgent?.avg_context_fill)} note="How full its working memory was. Near 100% it starts forgetting earlier details." />
           </section>
         </div>
       </main>
@@ -781,15 +836,84 @@ function SlotCard({
   tone,
   label,
   value,
+  note,
+  empty = "No reading yet",
 }: {
   tone: "human" | "agent";
   label: string;
   value?: number | string | null | undefined;
+  note?: string;
+  empty?: string;
 }) {
+  const has = value != null && value !== "";
   return (
     <GlassCard tone={tone} className="flex flex-1 flex-col px-6 pb-6 pt-6">
       <span className="text-[10px] uppercase tracking-[0.25em] text-foreground">{label}</span>
-      <p className="mt-8 font-display text-4xl font-extralight tracking-tight text-foreground">{value ?? "—"}</p>
+      {has ? (
+        <p className="mt-6 font-display text-4xl font-extralight tracking-tight text-foreground">{value}</p>
+      ) : (
+        <p className="mt-6 text-base text-foreground">{empty}</p>
+      )}
+      {note && <p className="mt-3 text-xs leading-relaxed text-foreground">{note}</p>}
     </GlassCard>
+  );
+}
+
+function HumanLiveCells({ refreshKey }: { refreshKey: unknown }) {
+  const [hr, setHr] = useState<{ latest: string | null; err: string | null } | null>(null);
+  const [wk, setWk] = useState<{ text: string | null; err: string | null } | null>(null);
+  useEffect(() => {
+    void (async () => {
+      const since = new Date(Date.now() - 24 * 3600_000).toISOString();
+      const { data, error } = await supabase
+        .from("oura_heartrate")
+        .select("ts, bpm, source")
+        .gte("ts", since)
+        .order("ts");
+      if (error) return setHr({ latest: null, err: error.message });
+      const pts = data ?? [];
+      const last = pts.at(-1);
+      const awake = pts.filter((p) => p.source !== "sleep");
+      const avg = awake.length ? Math.round(awake.reduce((s, p) => s + p.bpm, 0) / awake.length) : null;
+      setHr({
+        latest: last
+          ? `${last.bpm} bpm · ${new Date(last.ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}${avg != null ? ` · awake avg ${avg}` : ""}`
+          : null,
+        err: null,
+      });
+    })();
+    void (async () => {
+      const { data, error } = await supabase
+        .from("oura_workouts")
+        .select("activity, start_at, day, calories")
+        .order("start_at", { ascending: false })
+        .limit(1);
+      if (error) return setWk({ text: null, err: error.message });
+      const w = data?.[0];
+      setWk({
+        text: w
+          ? `${w.activity ?? "Workout"} · ${w.start_at ? new Date(w.start_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : w.day}${w.calories != null ? ` · ${Math.round(Number(w.calories))} cal` : ""}`
+          : null,
+        err: null,
+      });
+    })();
+  }, [refreshKey]);
+  return (
+    <>
+      <SlotCard
+        tone="human"
+        label="Heart rate now"
+        value={hr?.latest}
+        empty={hr?.err ? `Error: ${hr.err}` : hr ? "No heart rate in the last 24 hours" : "Loading…"}
+        note="Your latest daytime reading. A long stretch well above resting, without a workout, can mean mid-day stress."
+      />
+      <SlotCard
+        tone="human"
+        label="Latest workout"
+        value={wk?.text}
+        empty={wk?.err ? `Error: ${wk.err}` : wk ? "No workouts in the last 7 days" : "Loading…"}
+        note="Sessions your ring detected or you logged."
+      />
+    </>
   );
 }
