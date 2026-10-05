@@ -63,11 +63,6 @@ Deno.serve(withEdgeHealth("agent-call", async (req, health) => {
   if (!agent) return json({ error: "agent_not_found" }, 404);
   health.agentIds = [agent.id];
 
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) {
-    console.error("agent-call: ANTHROPIC_API_KEY is not set");
-    return json({ error: "server_misconfigured" }, 500);
-  }
 
   if (include_human_context === true) {
     const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
@@ -91,73 +86,180 @@ Deno.serve(withEdgeHealth("agent-call", async (req, health) => {
     }
   }
 
-  // SDK retries are off so retries can be counted here.
-  const client = new Anthropic({ apiKey, maxRetries: 0 });
-  let response: Anthropic.Message | null = null;
-  let failure: unknown = null;
-  let retries = 0;
-  let latencyMs = 0;
-  for (let attempt = 0; ; attempt++) {
-    const started = performance.now();
-    try {
-      response = await client.messages.create({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        system,
-        messages,
-      });
-      latencyMs = Math.round(performance.now() - started);
-      break;
-    } catch (err) {
-      latencyMs = Math.round(performance.now() - started);
-      if (attempt < MAX_RETRIES && isRetryable(err)) {
+  type Attempt = {
+    ok: boolean;
+    model: string;
+    content: unknown;
+    stopReason: string | null;
+    usage: Record<string, number> | null;
+    tokensIn: number | null;
+    tokensOut: number | null;
+    cached: number | null;
+    contextLimit: number;
+    latencyMs: number;
+    retries: number;
+    error: string | null;
+  };
+
+  const failed = (model: string, contextLimit: number, latencyMs: number, retries: number, error: string): Attempt => ({
+    ok: false, model, content: null, stopReason: null, usage: null,
+    tokensIn: null, tokensOut: null, cached: null, contextLimit, latencyMs, retries, error,
+  });
+
+  async function logAttempt(a: Attempt): Promise<string | null> {
+    const { data: event, error: logErr } = await admin
+      .from("agent_events")
+      .insert({
+        agent_id,
+        event_type: "llm_call",
+        task_id,
+        model: a.model,
+        tokens_in: a.tokensIn,
+        tokens_out: a.tokensOut,
+        cached_tokens: a.cached,
+        latency_ms: a.latencyMs,
+        status: a.ok ? "ok" : "error",
+        retry_count: a.retries,
+        context_tokens: a.tokensIn,
+        context_limit: a.contextLimit,
+        error: a.ok ? null : a.error,
+      })
+      .select("id")
+      .single();
+    if (logErr) console.error(`agent-call: logging llm_call failed: ${logErr.message}`);
+    return event?.id ?? null;
+  }
+
+  // The user's own OpenAI-compatible model, tried first when configured.
+  async function callCustom(): Promise<Attempt | null> {
+    const base = Deno.env.get("CUSTOM_MODEL_BASE_URL");
+    const key = Deno.env.get("CUSTOM_MODEL_API_KEY");
+    const model = Deno.env.get("CUSTOM_MODEL_ID");
+    if (!base || !key || !model) return null;
+    const contextLimit = Number(Deno.env.get("CUSTOM_MODEL_CONTEXT_LIMIT")) || 128_000;
+    const chat = [
+      ...(system ? [{ role: "system", content: system }] : []),
+      ...messages.map((m: { role: string; content: unknown }) => ({
+        role: m.role,
+        content: typeof m.content === "string"
+          ? m.content
+          : Array.isArray(m.content)
+          ? m.content.map((b: { text?: string }) => b.text ?? "").join("")
+          : String(m.content),
+      })),
+    ];
+    const url = `${base.replace(/\/+$/, "")}/chat/completions`;
+    let retries = 0;
+    let latencyMs = 0;
+    let error = "";
+    for (let attempt = 0; ; attempt++) {
+      const started = performance.now();
+      let retryable = false;
+      try {
+        const r = await fetch(url, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model, messages: chat, max_tokens: MAX_TOKENS }),
+          signal: AbortSignal.timeout(30_000),
+        });
+        latencyMs = Math.round(performance.now() - started);
+        if (r.ok) {
+          const d = await r.json();
+          const text: string = d?.choices?.[0]?.message?.content ?? "";
+          if (text.trim()) {
+            const pin: number | null = d?.usage?.prompt_tokens ?? null;
+            const pout: number | null = d?.usage?.completion_tokens ?? null;
+            return {
+              ok: true, model,
+              content: [{ type: "text", text }],
+              stopReason: d?.choices?.[0]?.finish_reason ?? null,
+              usage: { input_tokens: pin ?? 0, output_tokens: pout ?? 0 },
+              tokensIn: pin, tokensOut: pout, cached: null,
+              contextLimit, latencyMs, retries, error: null,
+            };
+          }
+          error = "empty reply";
+        } else {
+          error = `${r.status}: ${(await r.text()).slice(0, 200)}`;
+          retryable = r.status === 408 || r.status === 429 || r.status >= 500;
+        }
+      } catch (err) {
+        latencyMs = Math.round(performance.now() - started);
+        error = err instanceof Error ? err.message : String(err);
+        retryable = true;
+      }
+      if (retryable && attempt < MAX_RETRIES) {
         retries++;
-        await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
+        await new Promise((res) => setTimeout(res, 500 * 2 ** attempt));
         continue;
       }
-      failure = err;
-      break;
+      return failed(model, contextLimit, latencyMs, retries, error);
     }
   }
 
-  const usage = response?.usage;
-  const tokensIn = usage
-    ? usage.input_tokens +
-      (usage.cache_read_input_tokens ?? 0) +
-      (usage.cache_creation_input_tokens ?? 0)
-    : null;
+  async function callClaude(): Promise<Attempt> {
+    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!apiKey) return failed(MODEL, CONTEXT_LIMIT, 0, 0, "ANTHROPIC_API_KEY is not set");
+    // SDK retries are off so retries can be counted here.
+    const client = new Anthropic({ apiKey, maxRetries: 0 });
+    let response: Anthropic.Message | null = null;
+    let failure: unknown = null;
+    let retries = 0;
+    let latencyMs = 0;
+    for (let attempt = 0; ; attempt++) {
+      const started = performance.now();
+      try {
+        response = await client.messages.create({ model: MODEL, max_tokens: MAX_TOKENS, system, messages });
+        latencyMs = Math.round(performance.now() - started);
+        break;
+      } catch (err) {
+        latencyMs = Math.round(performance.now() - started);
+        if (attempt < MAX_RETRIES && isRetryable(err)) {
+          retries++;
+          await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
+          continue;
+        }
+        failure = err;
+        break;
+      }
+    }
+    if (!response) return failed(MODEL, CONTEXT_LIMIT, latencyMs, retries, errorText(failure));
+    const usage = response.usage;
+    const tokensIn = usage.input_tokens + (usage.cache_read_input_tokens ?? 0) +
+      (usage.cache_creation_input_tokens ?? 0);
+    return {
+      ok: true, model: MODEL,
+      content: response.content,
+      stopReason: response.stop_reason,
+      usage: usage as unknown as Record<string, number>,
+      tokensIn, tokensOut: usage.output_tokens,
+      cached: usage.cache_read_input_tokens ?? 0,
+      contextLimit: CONTEXT_LIMIT, latencyMs, retries, error: null,
+    };
+  }
 
-  const { data: event, error: logErr } = await admin
-    .from("agent_events")
-    .insert({
-      agent_id,
-      event_type: "llm_call",
-      task_id,
-      model: MODEL,
-      tokens_in: tokensIn,
-      tokens_out: usage?.output_tokens ?? null,
-      cached_tokens: usage ? (usage.cache_read_input_tokens ?? 0) : null,
-      latency_ms: latencyMs,
-      status: response ? "ok" : "error",
-      retry_count: retries,
-      context_tokens: tokensIn,
-      context_limit: CONTEXT_LIMIT,
-      error: response ? null : errorText(failure),
-    })
-    .select("id")
-    .single();
-  if (logErr) console.error(`agent-call: logging llm_call failed: ${logErr.message}`);
+  let fallback = false;
+  let result = await callCustom();
+  let eventId: string | null = null;
+  if (result) eventId = await logAttempt(result);
+  if (!result || !result.ok) {
+    if (result) {
+      fallback = true;
+      console.error(`agent-call: custom model failed, using Claude: ${result.error}`);
+    }
+    result = await callClaude();
+    eventId = await logAttempt(result);
+  }
 
-  if (!response) {
-    return json(
-      { error: "claude_call_failed", detail: errorText(failure), event_id: event?.id ?? null },
-      502,
-    );
+  if (!result.ok) {
+    return json({ error: "model_call_failed", detail: result.error, event_id: eventId }, 502);
   }
   return json({
-    event_id: event?.id ?? null,
-    content: response.content,
-    stop_reason: response.stop_reason,
-    usage: response.usage,
+    event_id: eventId,
+    content: result.content,
+    stop_reason: result.stopReason,
+    usage: result.usage,
+    model: result.model,
+    fallback,
   });
 }));
