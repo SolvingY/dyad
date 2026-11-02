@@ -25,4 +25,5 @@ See [decisions/](decisions/README.md).
 
 ## Change records (newest first)
 
+- [WCAG 2.1 AA on public pages](changes/2026-11-02-wcag-21-aa-public-pages.md): skip link, landmarks and headings, labelled and announced sign-in forms, a pause control for the landing motion.
 - [Solving Y? repo standard](changes/2026-10-28-repo-standard.md): change records, simple scope, no Claude attribution, no Lovable branding.
