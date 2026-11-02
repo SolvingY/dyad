@@ -15,9 +15,13 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
+  // The 404 has no route head of its own, so give it a descriptive title (WCAG 2.4.2).
+  useEffect(() => {
+    document.title = "Page not found — Dyad";
+  }, []);
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
+      <main id="main-content" tabIndex={-1} className="max-w-md text-center outline-none">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -31,7 +35,7 @@ function NotFoundComponent() {
             Go home
           </Link>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
@@ -45,7 +49,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
+      <main id="main-content" tabIndex={-1} className="max-w-md text-center outline-none">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
           This page didn't load
         </h1>
@@ -69,7 +73,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
             Go home
           </a>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
@@ -125,11 +129,35 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * "Skip to main content" link, shown on keyboard focus (WCAG 2.4.1). Public pages mark their
+ * content with id="main-content"; signed-in pages fall back to their first <main>.
+ */
+function SkipLink() {
+  return (
+    <a
+      href="#main-content"
+      onClick={(e) => {
+        const target = document.getElementById("main-content") ?? document.querySelector("main");
+        if (!target) return;
+        e.preventDefault();
+        // tabIndex -1 lets a non-interactive landmark take focus, so the next Tab starts there.
+        if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
+        target.focus();
+      }}
+      className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:text-foreground focus:ring-2 focus:ring-ring"
+    >
+      Skip to main content
+    </a>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
+      <SkipLink />
       <LiquidLayer />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <div className="liquid-page">
