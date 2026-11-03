@@ -76,21 +76,26 @@ function AuthCallback() {
 
   return (
     <div className="dyad-ambient flex min-h-screen items-center justify-center px-6">
-      <div className="text-center">
+      <main id="main-content" className="text-center">
+        <h1 className="sr-only">Signing you in</h1>
         <div className="flex justify-center">
           <BrandLogo className="h-12" />
         </div>
         {error ? (
           <>
-            <p className="mt-6 text-sm text-destructive">{error}</p>
+            <p role="alert" className="mt-6 text-sm text-destructive">
+              {error}
+            </p>
             <Link to="/auth" className="mt-4 inline-block text-xs uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground">
               Back to sign in
             </Link>
           </>
         ) : (
-          <p className="mt-6 text-sm text-muted-foreground">Signing you in…</p>
+          <p role="status" className="mt-6 text-sm text-muted-foreground">
+            Signing you in…
+          </p>
         )}
-      </div>
+      </main>
     </div>
   );
 }

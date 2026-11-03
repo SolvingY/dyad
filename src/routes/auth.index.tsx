@@ -26,7 +26,7 @@ export const Route = createFileRoute("/auth/")({
 type Mode = "signin" | "signup" | "magic" | "forgot";
 
 const inputCls =
-  "w-full rounded-lg border border-glass-line bg-background/40 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-glass-line-luminous";
+  "w-full rounded-lg border border-glass-line bg-background/40 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-glass-line-luminous focus-visible:ring-2 focus-visible:ring-ring";
 const primaryBtn =
   "w-full rounded-lg bg-gradient-to-r from-human to-agent px-4 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed";
 const ghostBtn =
@@ -106,10 +106,13 @@ function AuthPage() {
 
   return (
     <div className="dyad-ambient flex min-h-screen items-center justify-center px-6 py-16">
-      <div className="w-full max-w-md">
+      <main id="main-content" className="w-full max-w-md">
         <div className="flex justify-center">
           <BrandLogo className="h-14 sm:h-16" />
         </div>
+        <h1 className="sr-only">
+          {mode === "forgot" ? "Reset your password" : tabs.find((t) => t.id === mode)?.label}
+        </h1>
         <p className="mt-2 text-center text-sm text-muted-foreground">
           Shared vitals for a human and their AI agent.
         </p>
@@ -133,11 +136,16 @@ function AuthPage() {
           </div>
 
           {mode !== "forgot" && (
-            <div className="mb-5 flex gap-1 rounded-lg border border-glass-line p-1">
+            <div
+              role="group"
+              aria-label="How to sign in"
+              className="mb-5 flex gap-1 rounded-lg border border-glass-line p-1"
+            >
               {tabs.map((t) => (
                 <button
                   key={t.id}
                   type="button"
+                  aria-pressed={mode === t.id}
                   onClick={() => {
                     setMode(t.id);
                     setError(null);
@@ -155,17 +163,29 @@ function AuthPage() {
           )}
 
           <form onSubmit={submit} className="flex flex-col gap-3">
+            <label htmlFor="auth-email" className="sr-only">
+              Email
+            </label>
             <input
+              id="auth-email"
               type="email"
               required
               autoComplete="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "auth-error" : undefined}
               className={inputCls}
             />
             {(mode === "signin" || mode === "signup") && (
+              <label htmlFor="auth-password" className="sr-only">
+                Password
+              </label>
+            )}
+            {(mode === "signin" || mode === "signup") && (
               <input
+                id="auth-password"
                 type="password"
                 required
                 minLength={6}
@@ -173,8 +193,15 @@ function AuthPage() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? "auth-error" : "auth-password-hint"}
                 className={inputCls}
               />
+            )}
+            {(mode === "signin" || mode === "signup") && (
+              <p id="auth-password-hint" className="sr-only">
+                At least 6 characters.
+              </p>
             )}
             <button type="submit" className={cn(primaryBtn, "mt-2")} disabled={busy}>
               {busy
@@ -189,8 +216,15 @@ function AuthPage() {
             </button>
           </form>
 
-          {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
-          {notice && <p className="mt-4 text-sm text-agent">{notice}</p>}
+          {/* Live regions so screen readers hear sign-in errors and "check your email" (WCAG 3.3.1, 4.1.3). */}
+          <div role="alert">
+            {error && (
+              <p id="auth-error" className="mt-4 text-sm text-destructive">
+                {error}
+              </p>
+            )}
+          </div>
+          <div role="status">{notice && <p className="mt-4 text-sm text-agent">{notice}</p>}</div>
 
           <div className="mt-6 text-center text-xs text-muted-foreground">
             {mode === "signin" && (
@@ -205,7 +239,7 @@ function AuthPage() {
             )}
           </div>
         </GlassCard>
-      </div>
+      </main>
     </div>
   );
 }

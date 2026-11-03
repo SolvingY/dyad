@@ -636,6 +636,13 @@ a.liquid-press:active,
   .dyad-logo-glow { animation: none; }
 }
 
+/* Landing "Pause motion" control (WCAG 2.2.2): stops every looping animation on the page. */
+.motion-paused *,
+.motion-paused *::before,
+.motion-paused *::after {
+  animation: none !important;
+}
+
 /* Landing: slow float for the hero brain */
 @keyframes dyad-float {
   0%, 100% { transform: translateY(0); }

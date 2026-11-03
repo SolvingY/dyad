@@ -59,6 +59,8 @@ function Landing() {
   const [progress, setProgress] = useState(0);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [hover, setHover] = useState<BrainRegion | null>(null);
+  // Pause control for the looping hero motion (WCAG 2.2.2): stops CSS loops, particles and the brain.
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     if (!loading && user) navigate({ to: "/app", replace: true });
@@ -90,197 +92,215 @@ function Landing() {
   const scale = 1 - progress * 0.55;
 
   return (
-    <div className="dyad-ambient glitch-shell relative min-h-dvh bg-background text-foreground">
-      {rich && <GlitchOverlay />}
-      <div className="relative">
-        {/* Brain stage: sticky through the hero and "Two sets of vitals" on desktop */}
-        <div className="relative h-dvh overflow-hidden bg-background lg:sticky lg:top-0">
-          {rich && <Particles />}
-          <div
-            className="absolute inset-0 flex items-center justify-center"
-            style={{
-              opacity: shown ? 1 : 0,
-              transition: "opacity 3s ease-out",
-              perspective: "1200px",
-            }}
-          >
+    <div
+      className={cn(
+        "dyad-ambient glitch-shell relative min-h-dvh bg-background text-foreground",
+        paused && "motion-paused",
+      )}
+    >
+      {rich && !paused && <GlitchOverlay />}
+      <main>
+        <div className="relative">
+          {/* Brain stage: sticky through the hero and "Two sets of vitals" on desktop */}
+          <div className="relative h-dvh overflow-hidden bg-background lg:sticky lg:top-0">
+            {rich && !paused && <Particles />}
             <div
-              className="relative h-[52vh] w-[min(92vw,80vh)] lg:h-[62vh]"
+              className="absolute inset-0 flex items-center justify-center"
               style={{
-                transform: `translateY(${-(1 - progress) * 12}vh) scale(${scale}) rotateX(${-tilt.y * 6}deg) rotateY(${tilt.x * 8}deg)`,
-                transition: "transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
+                opacity: shown ? 1 : 0,
+                transition: "opacity 3s ease-out",
+                perspective: "1200px",
               }}
             >
-              <div className={cn("h-full w-full", rich && "dyad-float")}>
-                <DyadBrain
-                  visual={VISUAL}
-                  selected={hover}
-                  onSelect={() => {}}
-                  className="h-full w-full"
+              <div
+                className="relative h-[52vh] w-[min(92vw,80vh)] lg:h-[62vh]"
+                style={{
+                  transform: `translateY(${-(1 - progress) * 12}vh) scale(${scale}) rotateX(${-tilt.y * 6}deg) rotateY(${tilt.x * 8}deg)`,
+                  transition: "transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
+                }}
+              >
+                <div className={cn("h-full w-full", rich && "dyad-float")}>
+                  <DyadBrain
+                    visual={VISUAL}
+                    paused={paused}
+                    selected={hover}
+                    onSelect={() => {}}
+                    className="h-full w-full"
+                  />
+                </div>
+                {rich && (
+                  <div className="absolute inset-0 grid grid-cols-2">
+                    <div onPointerEnter={() => setHover("human")} onPointerLeave={() => setHover(null)} />
+                    <div onPointerEnter={() => setHover("agent")} onPointerLeave={() => setHover(null)} />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* HERO text */}
+          <section className="pointer-events-none relative -mt-[100dvh] flex h-dvh flex-col">
+            <header className="landing-liquid-nav pointer-events-auto fixed inset-x-0 top-0 z-50 flex flex-col items-center gap-3 px-6 py-4 sm:flex-row sm:justify-between md:px-10">
+              <BrandLogo className="h-8 md:h-10" />
+              <nav aria-label="Main" className="flex items-center gap-4 sm:gap-5">
+                <a href="#watch" className="text-[11px] uppercase tracking-[0.25em] text-foreground hover:text-agent">
+                  Watch the film
+                </a>
+                <Link to="/auth" className="text-[11px] uppercase tracking-[0.25em] text-foreground hover:text-agent">
+                  Sign in
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setPaused((p) => !p)}
+                  className="text-[11px] uppercase tracking-[0.25em] text-foreground hover:text-agent"
+                >
+                  {paused ? "Play motion" : "Pause motion"}
+                </button>
+              </nav>
+            </header>
+            <div
+              id="main-content"
+              tabIndex={-1}
+              className="mt-auto flex flex-col items-center px-6 pb-14 text-center outline-none"
+              style={{
+                opacity: shown ? 1 - progress * 1.6 : 0,
+                transition: shown && progress === 0 ? "opacity 1.4s ease-out 3s" : "none",
+              }}
+            >
+              <p className="glitch-kicker mb-4 flex items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-agent">
+                <Radio className="size-3" /> Human signal / agent signal
+              </p>
+              <h1 className="glitch-title max-w-3xl font-display text-4xl font-extralight tracking-tight text-foreground md:text-6xl" data-text="Shared vitals for you and your agent.">
+                Shared vitals for you and your agent.
+              </h1>
+              <p className="mt-5 max-w-2xl text-base font-light leading-relaxed text-foreground md:text-lg">
+                Dyad gives your AI agent a health score of its own and reads it beside yours, so each of you
+                knows when to push, when to ask, and when to leave the other alone.
+              </p>
+              <SignupCta className="pointer-events-auto mt-8" />
+            </div>
+          </section>
+
+          {/* SECTION 2 — See how it works (the film) */}
+          <section id="watch" className="relative scroll-mt-20 bg-background px-6 py-24 md:px-10">
+            <SectionTitle>See how it works</SectionTitle>
+            <div className="mx-auto mt-10 w-full max-w-[1100px]">
+              <div className="relative w-full overflow-hidden rounded-2xl border border-glass-line bg-black/40 shadow-[0_0_60px_rgba(0,0,0,0.5)]" style={{ aspectRatio: "16 / 9" }}>
+                <video
+                  className="absolute inset-0 h-full w-full"
+                  src="/dyad-explainer.mp4"
+                  poster="/dyad-explainer-poster.jpg"
+                  controls
+                  preload="metadata"
+                  playsInline
                 />
               </div>
-              {rich && (
-                <div className="absolute inset-0 grid grid-cols-2">
-                  <div onPointerEnter={() => setHover("human")} onPointerLeave={() => setHover(null)} />
-                  <div onPointerEnter={() => setHover("agent")} onPointerLeave={() => setHover(null)} />
-                </div>
-              )}
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm font-light text-foreground">
+                  Two minutes on how you and your agent check on each other.
+                </p>
+                <a
+                  href="/dyad-walkthrough.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-agent underline-offset-4 hover:underline"
+                >
+                  Open the interactive walkthrough
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              </div>
             </div>
-          </div>
+          </section>
+
+          {/* SECTION 3 */}
+          <section className="landing-liquid-section pointer-events-none relative flex min-h-dvh flex-col justify-center px-6 py-20 md:px-10">
+            <SectionTitle>Two sets of vitals</SectionTitle>
+            <SignalRail left="HUMAN / LIVE" right="AGENT / LIVE" />
+            <div className="mx-auto mt-10 grid w-full max-w-6xl grid-cols-2 gap-6 lg:grid-cols-[1fr_minmax(16rem,1fr)_1fr]">
+              <ul className="flex flex-col gap-6 lg:text-right">
+                {PAIRS.map(([h, hNote], index) => (
+                  <li
+                    key={h}
+                    className="glass-card liquid-in pointer-events-auto rounded-xl border-human/40 px-4 py-3 text-lg font-light text-human"
+                    style={{ animationDelay: `${index * 70}ms` }}
+                  >
+                    {h}
+                    <span className="block text-sm font-light text-foreground">{hNote}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="hidden lg:block" aria-hidden="true" />
+              <ul className="flex flex-col gap-6">
+                {PAIRS.map(([, , a, aNote], index) => (
+                  <li
+                    key={a}
+                    className="glass-card liquid-in pointer-events-auto rounded-xl border-agent/40 px-4 py-3 text-lg font-light text-agent"
+                    style={{ animationDelay: `${index * 70}ms` }}
+                  >
+                    {a}
+                    <span className="block text-sm font-light text-foreground">{aNote}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <Line>
+              Your side comes from your Oura ring. The agent's side is measured from its own work, never typed in.
+            </Line>
+          </section>
         </div>
-
-        {/* HERO text */}
-        <section className="pointer-events-none relative -mt-[100dvh] flex h-dvh flex-col">
-          <header className="landing-liquid-nav pointer-events-auto fixed inset-x-0 top-0 z-50 flex flex-col items-center gap-3 px-6 py-4 sm:flex-row sm:justify-between md:px-10">
-            <BrandLogo className="h-8 md:h-10" />
-            <nav className="flex items-center gap-4 sm:gap-5">
-              <a href="#watch" className="text-[11px] uppercase tracking-[0.25em] text-foreground hover:text-agent">
-                Watch the film
-              </a>
-              <Link to="/auth" className="text-[11px] uppercase tracking-[0.25em] text-foreground hover:text-agent">
-                Sign in
-              </Link>
-            </nav>
-          </header>
-          <div
-            className="mt-auto flex flex-col items-center px-6 pb-14 text-center"
-            style={{
-              opacity: shown ? 1 - progress * 1.6 : 0,
-              transition: shown && progress === 0 ? "opacity 1.4s ease-out 3s" : "none",
-            }}
-          >
-            <p className="glitch-kicker mb-4 flex items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-agent">
-              <Radio className="size-3" /> Human signal / agent signal
-            </p>
-            <h1 className="glitch-title max-w-3xl font-display text-4xl font-extralight tracking-tight text-foreground md:text-6xl" data-text="Shared vitals for you and your agent.">
-              Shared vitals for you and your agent.
-            </h1>
-            <p className="mt-5 max-w-2xl text-base font-light leading-relaxed text-foreground md:text-lg">
-              Dyad gives your AI agent a health score of its own and reads it beside yours, so each of you
-              knows when to push, when to ask, and when to leave the other alone.
-            </p>
-            <SignupCta className="pointer-events-auto mt-8" />
-          </div>
-        </section>
-
-        {/* SECTION 2 — See how it works (the film) */}
-        <section id="watch" className="relative scroll-mt-20 bg-background px-6 py-24 md:px-10">
-          <SectionTitle>See how it works</SectionTitle>
-          <div className="mx-auto mt-10 w-full max-w-[1100px]">
-            <div className="relative w-full overflow-hidden rounded-2xl border border-glass-line bg-black/40 shadow-[0_0_60px_rgba(0,0,0,0.5)]" style={{ aspectRatio: "16 / 9" }}>
-              <video
-                className="absolute inset-0 h-full w-full"
-                src="/dyad-explainer.mp4"
-                poster="/dyad-explainer-poster.jpg"
-                controls
-                preload="metadata"
-                playsInline
-              />
-            </div>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-light text-foreground">
-                Two minutes on how you and your agent check on each other.
-              </p>
-              <a
-                href="/dyad-walkthrough.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-agent underline-offset-4 hover:underline"
-              >
-                Open the interactive walkthrough
-              </a>
-            </div>
-          </div>
-        </section>
 
         {/* SECTION 3 */}
-        <section className="landing-liquid-section pointer-events-none relative flex min-h-dvh flex-col justify-center px-6 py-20 md:px-10">
-          <SectionTitle>Two sets of vitals</SectionTitle>
-          <SignalRail left="HUMAN / LIVE" right="AGENT / LIVE" />
-          <div className="mx-auto mt-10 grid w-full max-w-6xl grid-cols-2 gap-6 lg:grid-cols-[1fr_minmax(16rem,1fr)_1fr]">
-            <ul className="flex flex-col gap-6 lg:text-right">
-              {PAIRS.map(([h, hNote], index) => (
-                <li
-                  key={h}
-                  className="glass-card liquid-in pointer-events-auto rounded-xl border-human/40 px-4 py-3 text-lg font-light text-human"
-                  style={{ animationDelay: `${index * 70}ms` }}
-                >
-                  {h}
-                  <span className="block text-sm font-light text-foreground">{hNote}</span>
-                </li>
-              ))}
-            </ul>
-            <div className="hidden lg:block" aria-hidden="true" />
-            <ul className="flex flex-col gap-6">
-              {PAIRS.map(([, , a, aNote], index) => (
-                <li
-                  key={a}
-                  className="glass-card liquid-in pointer-events-auto rounded-xl border-agent/40 px-4 py-3 text-lg font-light text-agent"
-                  style={{ animationDelay: `${index * 70}ms` }}
-                >
-                  {a}
-                  <span className="block text-sm font-light text-foreground">{aNote}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <Line>
-            Your side comes from your Oura ring. The agent's side is measured from its own work, never typed in.
-          </Line>
-        </section>
-      </div>
-
-      {/* SECTION 3 */}
-      <section className="landing-liquid-section relative bg-background px-6 py-28 md:px-10">
-        <SectionTitle>The space between</SectionTitle>
-        <SignalRail left="INPUT" right="RESPONSE" />
-        <div className="mx-auto mt-10 flex max-w-xl flex-col gap-4">
-          <div className="glass-card liquid-in max-w-[90%] self-start rounded-2xl rounded-bl-sm border-agent/30 px-4 py-2.5">
-            <p className="mb-1 text-[10px] uppercase tracking-[0.2em] text-agent">Check-in</p>
-            <p className="text-sm leading-relaxed text-foreground">
-              Your readiness is 74 and I'm working from yesterday's picture of you. One question: how's your
-              energy right now?
+        <section className="landing-liquid-section relative bg-background px-6 py-28 md:px-10">
+          <SectionTitle>The space between</SectionTitle>
+          <SignalRail left="INPUT" right="RESPONSE" />
+          <div className="mx-auto mt-10 flex max-w-xl flex-col gap-4">
+            <div className="glass-card liquid-in max-w-[90%] self-start rounded-2xl rounded-bl-sm border-agent/30 px-4 py-2.5">
+              <p className="mb-1 text-[10px] uppercase tracking-[0.2em] text-agent">Check-in</p>
+              <p className="text-sm leading-relaxed text-foreground">
+                Your readiness is 74 and I'm working from yesterday's picture of you. One question: how's your
+                energy right now?
+              </p>
+            </div>
+            <p className="flex items-center justify-center gap-1.5 text-[11px] text-foreground">
+              <Pause aria-hidden="true" className="size-3" />
+              Held: you answered an hour ago.
             </p>
           </div>
-          <p className="flex items-center justify-center gap-1.5 text-[11px] text-foreground">
-            <Pause aria-hidden="true" className="size-3" />
-            Held: you answered an hour ago.
-          </p>
-        </div>
-        <Line>
-          Your agent checks in when it helps and holds back when it doesn't. Every answer makes it know you better.
-        </Line>
-      </section>
+          <Line>
+            Your agent checks in when it helps and holds back when it doesn't. Every answer makes it know you better.
+          </Line>
+        </section>
 
-      {/* SECTION 4 */}
-      <section className="landing-liquid-section relative bg-background px-6 py-28 md:px-10">
-        <SectionTitle>How it works</SectionTitle>
-        <SignalRail left="01 CONNECT" right="03 SYNC" />
-        <ol className="mx-auto mt-10 flex max-w-xl flex-col gap-6">
-          {[
-            "Connect your Oura ring.",
-            "Connect your own agent — Claude, Cursor, or your own code — over MCP.",
-            "It measures its own work and checks in through the day.",
-            "You answer by voice or text, and both sets of vitals stay live.",
-          ].map((step, i) => (
-            <li
-              key={step}
-              className="glass-card liquid-in flex items-baseline gap-5 rounded-xl px-5 py-4"
-              style={{ animationDelay: `${i * 90}ms` }}
-            >
-              <span className="font-display text-3xl font-extralight text-agent">{i + 1}</span>
-              <span className="text-lg font-light text-foreground">{step}</span>
-            </li>
-          ))}
-        </ol>
-        <Link
-          to="/agents"
-          className="mx-auto mt-6 block w-fit text-sm text-agent underline-offset-4 hover:underline"
-        >
-          Bringing your own agent? See how to connect it over MCP
-        </Link>
-        <SignupCta className="mt-12" />
-      </section>
+        {/* SECTION 4 */}
+        <section className="landing-liquid-section relative bg-background px-6 py-28 md:px-10">
+          <SectionTitle>How it works</SectionTitle>
+          <SignalRail left="01 CONNECT" right="03 SYNC" />
+          <ol className="mx-auto mt-10 flex max-w-xl flex-col gap-6">
+            {[
+              "Connect your Oura ring.",
+              "Connect your own agent — Claude, Cursor, or your own code — over MCP.",
+              "It measures its own work and checks in through the day.",
+              "You answer by voice or text, and both sets of vitals stay live.",
+            ].map((step, i) => (
+              <li
+                key={step}
+                className="glass-card liquid-in flex items-baseline gap-5 rounded-xl px-5 py-4"
+                style={{ animationDelay: `${i * 90}ms` }}
+              >
+                <span className="font-display text-3xl font-extralight text-agent">{i + 1}</span>
+                <span className="text-lg font-light text-foreground">{step}</span>
+              </li>
+            ))}
+          </ol>
+          <Link
+            to="/agents"
+            className="mx-auto mt-6 block w-fit text-sm text-agent underline-offset-4 hover:underline"
+          >
+            Bringing your own agent? See how to connect it over MCP
+          </Link>
+          <SignupCta className="mt-12" />
+        </section>
+      </main>
 
       <footer className="landing-liquid-footer relative flex flex-wrap items-center justify-center gap-4 border-t border-glass-line px-6 py-8 text-[11px] uppercase tracking-[0.2em] text-foreground">
         <Link to="/terms" className="hover:text-human">Terms</Link>

@@ -26,12 +26,15 @@ export const Route = createFileRoute("/privacy")({
 function PrivacyPage() {
   return (
     <div className="dyad-ambient relative min-h-screen overflow-hidden">
-      <main className="relative mx-auto w-full max-w-3xl px-6 pb-24 pt-10 md:pt-14">
+      <main
+        id="main-content"
+        className="relative mx-auto w-full max-w-3xl px-6 pb-24 pt-10 md:pt-14"
+      >
         <header className="flex flex-col gap-2">
           <BrandLogo className="h-10" />
-          <p className="text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
+          <h1 className="text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
             Privacy Policy
-          </p>
+          </h1>
         </header>
 
         <article className="legal-prose mt-12">

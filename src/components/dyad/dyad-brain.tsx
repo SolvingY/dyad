@@ -17,6 +17,8 @@ type Props = {
   selected: BrainRegion | null;
   onSelect: (region: BrainRegion) => void;
   className?: string;
+  /** Freezes auto-rotation, breathing and firing (the landing page's "Pause motion", WCAG 2.2.2). */
+  paused?: boolean;
 };
 
 const MODEL_URL = brainAsset.url;
@@ -102,8 +104,9 @@ const POINT_FRAG = /* glsl */ `
   }
 `;
 
-export function DyadBrain({ visual, selected, onSelect, className }: Props) {
+export function DyadBrain({ visual, selected, onSelect, className, paused = false }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
+  const pausedRef = useRef(paused);
   const visualRef = useRef(visual);
   const selectedRef = useRef(selected);
   const onSelectRef = useRef(onSelect);
@@ -115,6 +118,7 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
   visualRef.current = visual;
   selectedRef.current = selected;
   onSelectRef.current = onSelect;
+  pausedRef.current = paused;
 
   useEffect(() => {
     setCoarse(window.matchMedia("(pointer: coarse)").matches);
@@ -489,6 +493,9 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         const t = clock.getElapsed();
         const v = visualRef.current;
         const sel = selectedRef.current;
+        // Reduced motion or the page's pause control: hold the brain still.
+        const still = reduceMotion || pausedRef.current;
+        controls.autoRotate = !still;
         const h = v.human;
         const a = v.agent;
         // Ease readiness changes so updates glide rather than jump.
@@ -554,18 +561,18 @@ export function DyadBrain({ visual, selected, onSelect, className }: Props) {
         haloMat.color.copy(tmpColor);
         coreMat.opacity = 0.3 + 0.6 * c.brightness + (sel === "center" ? 0.15 : 0);
         haloMat.opacity = (0.025 + 0.06 * c.brightness) * (1 - load * 0.4);
-        const breathe = reduceMotion ? 0 : Math.sin(t * 0.9);
+        const breathe = still ? 0 : Math.sin(t * 0.9);
         core.scale.setScalar(1 + 0.12 * breathe);
         halo.scale.setScalar(1 + 0.06 * breathe);
         // Neural connections: firing rate follows each side's activity; the
         // selected side's connections brighten.
-        lineUniforms.uTime.value = reduceMotion ? 0 : t;
+        lineUniforms.uTime.value = still ? 0 : t;
         lineUniforms.uRateH.value = h ? 0.25 + h.activity * 0.75 : 0.3;
         lineUniforms.uRateA.value = a ? 0.25 + a.activity * 0.75 : 0.3;
         lineUniforms.uBoostH.value = humanSel ? 1.6 : agentSel ? 0.4 : 1;
         lineUniforms.uBoostA.value = agentSel ? 1.6 : humanSel ? 0.4 : 1;
 
-        if (reduceMotion) uniforms.uTime.value = 0;
+        if (still) uniforms.uTime.value = 0;
         controls.update();
         renderer.render(scene, camera);
       };

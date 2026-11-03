@@ -82,7 +82,11 @@ function ConsentPage() {
       </>
     );
   } else if (error) {
-    body = <p className="text-sm text-destructive">{error}</p>;
+    body = (
+      <p role="alert" className="text-sm text-destructive">
+        {error}
+      </p>
+    );
   } else if (!details) {
     body = <p className="text-sm text-muted-foreground">Loading…</p>;
   } else {
@@ -113,14 +117,17 @@ function ConsentPage() {
   }
 
   return (
-    <div className="dyad-ambient flex min-h-screen items-center justify-center px-6">
+    <main
+      id="main-content"
+      className="dyad-ambient flex min-h-screen items-center justify-center px-6"
+    >
       <GlassCard tone="agent" className="flex w-full max-w-md flex-col gap-4 p-6">
         <div className="flex justify-center pb-2">
           <BrandLogo className="h-11" />
         </div>
-        <p className="text-xs uppercase tracking-[0.25em] text-foreground/50">Connect an app</p>
+        <h1 className="text-xs uppercase tracking-[0.25em] text-foreground/50">Connect an app</h1>
         {body}
       </GlassCard>
-    </div>
+    </main>
   );
 }

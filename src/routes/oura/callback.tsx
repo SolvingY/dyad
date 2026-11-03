@@ -43,8 +43,8 @@ function OuraCallbackPage() {
   }, [navigate]);
 
   return (
-    <div className="dyad-ambient flex min-h-screen items-center justify-center">
-      <p className="text-sm text-muted-foreground">Connecting your Oura ring…</p>
-    </div>
+    <main id="main-content" className="dyad-ambient flex min-h-screen items-center justify-center">
+      <h1 className="text-sm text-muted-foreground">Connecting your Oura ring…</h1>
+    </main>
   );
 }

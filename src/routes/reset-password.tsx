@@ -37,14 +37,21 @@ function ResetPassword() {
   }
 
   return (
-    <div className="dyad-ambient flex min-h-screen items-center justify-center px-6">
+    <main
+      id="main-content"
+      className="dyad-ambient flex min-h-screen items-center justify-center px-6"
+    >
       <GlassCard tone="dyad" className="w-full max-w-md px-7 py-8">
         <div className="mb-7 flex justify-center">
           <BrandLogo className="h-12" />
         </div>
         <h1 className="text-[11px] uppercase tracking-[0.35em] text-foreground">Set a new password</h1>
         <form onSubmit={submit} className="mt-6 flex flex-col gap-3">
+          <label htmlFor="new-password" className="sr-only">
+            New password (at least 6 characters)
+          </label>
           <input
+            id="new-password"
             type="password"
             required
             minLength={6}
@@ -52,7 +59,9 @@ function ResetPassword() {
             placeholder="New password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-glass-line bg-background/40 px-4 py-3 text-sm text-foreground outline-none focus:border-glass-line-luminous"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "reset-error" : undefined}
+            className="w-full rounded-lg border border-glass-line bg-background/40 px-4 py-3 text-sm text-foreground outline-none focus:border-glass-line-luminous focus-visible:ring-2 focus-visible:ring-ring"
           />
           <button
             type="submit"
@@ -62,8 +71,14 @@ function ResetPassword() {
             {busy ? "Saving…" : "Update password"}
           </button>
         </form>
-        {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
+        <div role="alert">
+          {error && (
+            <p id="reset-error" className="mt-4 text-sm text-destructive">
+              {error}
+            </p>
+          )}
+        </div>
       </GlassCard>
-    </div>
+    </main>
   );
 }
